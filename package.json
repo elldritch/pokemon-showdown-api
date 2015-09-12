@@ -1,0 +1,20 @@
+{
+  "name": "pokemon-showdown",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "bluebird": "*",
+    "pokeapi": "*",
+    "request": "*",
+    "ws": "*"
+  },
+  "devDependencies": {
+    "chalk": "*"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Leo Zhang <leo@leozhang.me> (http://leozhang.me/)",
+  "license": "ISC"
+}
