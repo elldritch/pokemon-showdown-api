@@ -7,7 +7,7 @@ request = Promise.promisify require 'request'
 
 # Utility functions for logging
 # coffeelint: disable=no_empty_functions,no_debugger
-DEBUG = true
+DEBUG = false
 log = if DEBUG then console.log else ->
 # coffeelint: enable=no_empty_functions,no_debugger
 
@@ -37,36 +37,27 @@ loginServer = (options) ->
 
 # This is a client for Pokemon Showdown.
 class PokemonShowdownClient extends EventEmitter
+  constructor: ->
+    @_challstr = ''
+    @socket = null
+
   connect: ->
     @socket = new WebSocket 'ws://sim.smogon.com:8000/showdown/websocket'
-    @socket.on 'message', (data, flags) =>
-      @emit 'message', data
-      @_handle data
-    new Promise (resolve, reject) =>
-      @socket.on 'open', =>
-        @emit 'connect'
-        resolve()
+    @socket.on 'open', => @emit 'connect'
+    @socket.on 'message', (data, flags) => @_handle data
 
   disconnect: ->
-    new Promise (resolve, reject) =>
-      @socket.on 'close', (code, message) =>
-        @emit 'disconnect', code, message
-        resolve()
-      @socket.close()
+    @socket.on 'close', (code, message) => @emit 'disconnect', code, message
+    @socket.close()
 
   login: (name, pass) ->
     if name and pass and pass.length > 0
       log '[HAD AUTH]', name, pass
-      assertion = loginServer {
-        act: 'login'
-        name
-        pass
-        challstr: @_challstr
-      }
-      .spread (_, body) ->
-        user = JSON.parse body.substr 1
-        log '[LOGIN RESPONSE]', user
-        user.assertion
+      assertion = loginServer {act: 'login', name, pass, challstr: @_challstr}
+        .spread (_, body) ->
+          user = JSON.parse body.substr 1
+          log '[LOGIN RESPONSE]', user
+          user.assertion
     else if name
       log '[HAD NAME]', name, pass
       assertion = loginServer
@@ -78,21 +69,19 @@ class PokemonShowdownClient extends EventEmitter
 
     assertion.then (assertion) =>
       log '[ASSERTION]', assertion
-
       @send "/trn #{name},0,#{assertion}"
-      new Promise (resolve, reject) =>
-        @.once 'internal:updateuser', =>
-          @emit 'login'
-          resolve()
+      @.once 'internal:updateuser', => @emit 'login'
+
+  send: (message, room = '') ->
+    log '[SENDING]', room + '|' + message
+    @socket.send room + '|' + message
 
   _handle: (data) ->
     log '[RECEIVED]', data
+    @emit 'internal:message', data
+    messages = @_lex data
 
-    lines = data.split '\n'
-      .filter (line) -> line.length > 0
-    lexed = (@_lex line for line in lines)
-
-    for message in lexed
+    for message in messages
       log '[LEXED]', message
 
       switch message.type
@@ -102,27 +91,36 @@ class PokemonShowdownClient extends EventEmitter
         when @MESSAGE_TYPES.GLOBAL.UPDATEUSER
           @emit 'internal:updateuser'
         when @MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
-          log '[CODE DEBUG]', message.data
-          for challenger in Object.keys message.data.challengesFrom
-            @send "/accept #{challenger}"
+          @emit 'challenge', message.data
 
   _lex: (data) ->
     log '[LEXING]', data
 
-    if (data.startsWith '||') or not data.startsWith '|'
-      return {type: @MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data}
+    lines = data.split '\n'
 
-    data = data.substr 1
-    [type, data] = splitFirst data, '|'
+    if lines[0].startsWith '>'
+      room = 'global'
+      lines.shift()
+    else
+      room = lines[0].substr 1
+
+    (@_lexLine line, room for line in lines)
+
+  _lexLine: (line, room) ->
+    if (line.startsWith '||') or not line.startsWith '|'
+      return type: @MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data: line
+
+    line = line.substr 1
+    [type, data] = splitFirst line, '|'
     type = type.toLowerCase()
 
     abbreviations =
       c: 'chat'
+      'c:': 'chat'
       j: 'join'
       l: 'leave'
       n: 'name'
       b: 'battle'
-      'c:': 'chat-timestamp'
 
     if type of abbreviations then type = abbreviations[type]
     type = Symbol.for type
@@ -170,7 +168,6 @@ class PokemonShowdownClient extends EventEmitter
       LEAVE: Symbol.for 'leave'
       NAME: Symbol.for 'name'
       CHAT: Symbol.for 'chat'
-      CHAT_TIMESTAMP: Symbol.for 'chat-timestamp'
       TIMESTAMP: Symbol.for 'timestamp'
       BATTLE: Symbol.for 'battle'
 
@@ -200,33 +197,33 @@ class PokemonShowdownClient extends EventEmitter
           CANT: Symbol.for 'cant'
           FAINT: Symbol.for 'faint'
         MINOR:
-          FAIL: Symbol.for 'fail'
-          DAMAGE: Symbol.for 'damage'
-          HEAL: Symbol.for 'heal'
-          STATUS: Symbol.for 'status'
-          CURESTATUS: Symbol.for 'curestatus'
-          CURETEAM: Symbol.for 'cureteam'
-          BOOST: Symbol.for 'boost'
-          UNBOOST: Symbol.for 'unboost'
-          WEATHER: Symbol.for 'weather'
-          FIELDSTART: Symbol.for 'fieldstart'
-          FIELDEND: Symbol.for 'fieldend'
-          SIDESTART: Symbol.for 'sidestart'
-          SIDEEND: Symbol.for 'sideend'
-          CRIT: Symbol.for 'crit'
-          SUPEREFFECTIVE: Symbol.for 'supereffective'
-          RESISTED: Symbol.for 'resisted'
-          IMMUNE: Symbol.for 'immune'
-          ITEM: Symbol.for 'item'
-          ENDITEM: Symbol.for 'enditem'
-          ABILITY: Symbol.for 'ability'
-          ENDABILITY: Symbol.for 'endability'
-          TRANSFORM: Symbol.for 'transform'
-          MEGA: Symbol.for 'mega'
-          ACTIVATE: Symbol.for 'activate'
-          HINT: Symbol.for 'hint'
-          CENTER: Symbol.for 'center'
-          MESSAGE: Symbol.for 'message'
+          FAIL: Symbol.for '-fail'
+          DAMAGE: Symbol.for '-damage'
+          HEAL: Symbol.for '-heal'
+          STATUS: Symbol.for '-status'
+          CURESTATUS: Symbol.for '-curestatus'
+          CURETEAM: Symbol.for '-cureteam'
+          BOOST: Symbol.for '-boost'
+          UNBOOST: Symbol.for '-unboost'
+          WEATHER: Symbol.for '-weather'
+          FIELDSTART: Symbol.for '-fieldstart'
+          FIELDEND: Symbol.for '-fieldend'
+          SIDESTART: Symbol.for '-sidestart'
+          SIDEEND: Symbol.for '-sideend'
+          CRIT: Symbol.for '-crit'
+          SUPEREFFECTIVE: Symbol.for '-supereffective'
+          RESISTED: Symbol.for '-resisted'
+          IMMUNE: Symbol.for '-immune'
+          ITEM: Symbol.for '-item'
+          ENDITEM: Symbol.for '-enditem'
+          ABILITY: Symbol.for '-ability'
+          ENDABILITY: Symbol.for '-endability'
+          TRANSFORM: Symbol.for '-transform'
+          MEGA: Symbol.for '-mega'
+          ACTIVATE: Symbol.for '-activate'
+          HINT: Symbol.for '-hint'
+          CENTER: Symbol.for '-center'
+          MESSAGE: Symbol.for '-message'
       ACTIONREQUESTS:
         TEAM: Symbol.for 'team'
         MOVE: Symbol.for 'move'
@@ -245,9 +242,5 @@ class PokemonShowdownClient extends EventEmitter
       UPDATESEARCH: Symbol.for 'updatesearch'
       UPDATECHALLENGES: Symbol.for 'updatechallenges'
       QUERYRESPONSE: Symbol.for 'queryresponse'
-
-  send: (message, {room = ''} = {}) ->
-    log '[SENDING]', room + '|' + message
-    @socket.send room + '|' + message
 
 module.exports = {PokemonShowdownClient}

@@ -4,6 +4,7 @@ client = new PokemonShowdownClient()
 
 client.connect()
 
+# coffeelint: disable=no_debugger
 client.on 'ready', ->
   console.log '[READY]'
   # client.login 'anunktanenaerm'
@@ -14,5 +15,3 @@ client.on 'login', ->
   client.send '/help'
   client.send '/join lobby'
   # client.send '/roomhelp'
-
-# setTimeout (-> client.disconnect()), 10000
