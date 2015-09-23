@@ -5,12 +5,6 @@ WebSocket = require 'ws'
 
 request = Promise.promisify require 'request'
 
-# Utility functions for logging
-# coffeelint: disable=no_empty_functions,no_debugger
-DEBUG = false
-log = if DEBUG then console.log else ->
-# coffeelint: enable=no_empty_functions,no_debugger
-
 # Utility functions for dealing with strings
 ## Remove a certain number of characters off the beginning and end of a string
 snip = (str, offStart, offEnd) -> str.substring offStart, str.length - offEnd
@@ -31,13 +25,12 @@ splitFirst = (str, delimiter) -> [
 _loginServer = request.defaults
   url: 'https://play.pokemonshowdown.com/action.php'
   method: 'POST'
-loginServer = (options) ->
-  log '[LOGIN SERVER]', options
-  _loginServer form: options
+loginServer = (options) -> _loginServer form: options
 
 # This is a client for Pokemon Showdown.
 class PokemonShowdownClient extends EventEmitter
   constructor: ->
+    @MESSAGE_TYPES = PokemonShowdownClient.MESSAGE_TYPES
     @_challstr = ''
     @socket = null
 
@@ -52,14 +45,11 @@ class PokemonShowdownClient extends EventEmitter
 
   login: (name, pass) ->
     if name and pass and pass.length > 0
-      log '[HAD AUTH]', name, pass
       assertion = loginServer {act: 'login', name, pass, challstr: @_challstr}
         .spread (_, body) ->
           user = JSON.parse body.substr 1
-          log '[LOGIN RESPONSE]', user
           user.assertion
     else if name
-      log '[HAD NAME]', name, pass
       assertion = loginServer
         act: 'getassertion'
         userid: name
@@ -68,22 +58,23 @@ class PokemonShowdownClient extends EventEmitter
     else return
 
     assertion.then (assertion) =>
-      log '[ASSERTION]', assertion
       @send "/trn #{name},0,#{assertion}"
       @.once 'internal:updateuser', => @emit 'login'
 
+  challenge: (name, {format, room}) -> throw new Error 'Not yet implemented'
+  respond: ({accept, reject}) -> throw new Error 'Not yet implemented'
+
   send: (message, room = '') ->
-    log '[SENDING]', room + '|' + message
-    @socket.send room + '|' + message
+    payload = "#{room}|#{message}"
+    @emit 'internal:send', payload
+    @socket.send payload
 
   _handle: (data) ->
-    log '[RECEIVED]', data
     @emit 'internal:message', data
     messages = @_lex data
 
     for message in messages
-      log '[LEXED]', message
-
+      @emit 'internal:lexed', message
       switch message.type
         when @MESSAGE_TYPES.GLOBAL.CHALLSTR
           @_challstr = message.data
@@ -94,8 +85,6 @@ class PokemonShowdownClient extends EventEmitter
           @emit 'challenge', message.data
 
   _lex: (data) ->
-    log '[LEXING]', data
-
     lines = data.split '\n'
 
     if lines[0].startsWith '>'
@@ -143,8 +132,16 @@ class PokemonShowdownClient extends EventEmitter
       when @MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
         return {type, data: JSON.parse data}
 
-      when @MESSAGE_TYPES.ROOM_MESSAGES.CHAT_TIMESTAMP
-        [timestamp, user, message] = data.split '|'
+      when @MESSAGE_TYPES.ROOM_INIT.INIT
+        return {type, data}
+
+      when @MESSAGE_TYPES.ROOM_MESSAGES.CHAT
+        sections = data.split '|'
+        if sections.length is 3
+          timestamp = sections.shift()
+        else
+          timestamp = Date.now()
+        [user, message] = sections
         return {type, data: {timestamp, user, message}}
       when @MESSAGE_TYPES.ROOM_MESSAGES.JOIN
         return {type, data}
@@ -153,7 +150,7 @@ class PokemonShowdownClient extends EventEmitter
 
     return {type: @MESSAGE_TYPES.OTHER.UNKNOWN, data}
 
-  MESSAGE_TYPES:
+  @MESSAGE_TYPES:
     OTHER:
       UNKNOWN: Symbol.for 'unknown'
 

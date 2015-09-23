@@ -12,14 +12,14 @@ class Console extends EventEmitter
       .on 'line', (data) => @emit 'line', data
       .on 'close', => @emit 'close'
 
-  prompt: -> @readlineInterface.prompt()
+  prompt: -> @readlineInterface.prompt true
   print: (msg) ->
     @clear()
-    @stdout.write msg + '\n'
+    @stdout.write msg.trim() + '\n'
     @prompt()
 
   # coffeelint: disable=no_backticks
-  clear: -> @stdout.write `'\033[2K\033[E'`
+  clear: -> @stdout.write `'\033[2K\033[2D'`
   # coffeelint: enable=no_backticks
 
 ui = new Console()
@@ -31,18 +31,24 @@ client
   .on 'connect', ->
     ui.print chalk.green 'connected (press CTRL+C to quit)'
     ui.on 'line', (line) ->
-      if line.match /:e (.*)/
+      if line.trim() is ':h'
+        ui.print chalk.blue 'Usage:'
+      else if line.match /:e (.*)/
         cmd = line.substr 3
           .trim()
-        eval cmd
+        try
+          ret = eval "client.#{cmd}"
+          ui.print chalk.blue "returned: #{ret}"
+        catch
+          ui.print chalk.red 'that command is invalid'
       else
-        client.send line
+        client.socket.send line
       ui.prompt()
   .on 'disconnect', ->
     ui.print chalk.green 'disconnected'
     ui.clear()
     process.exit 0
   .on 'internal:message', (message) ->
-    ui.print chalk.blue '< ' + message
+    ui.print chalk.gray '< ' + message
 
 ui.on 'close', -> process.exit 0
