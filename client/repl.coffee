@@ -6,8 +6,13 @@ chalk = require 'chalk'
 {PokemonShowdownClient} = require './'
 
 class Console extends EventEmitter
-  constructor: ({@stdin = process.stdin, @stdout = process.stdout} = {}) ->
+  constructor: ({
+    @stdin = process.stdin,
+    @stdout = process.stdout,
+    @promptPrefix = '> '
+  } = {}) ->
     @readlineInterface = readline.createInterface @stdin, @stdout
+    @readlineInterface.setPrompt @promptPrefix
     @readlineInterface
       .on 'line', (data) => @emit 'line', data
       .on 'close', => @emit 'close'
@@ -18,9 +23,9 @@ class Console extends EventEmitter
     @stdout.write msg.trim() + '\n'
     @prompt()
 
-  # coffeelint: disable=no_backticks
-  clear: -> @stdout.write `'\033[2K\033[2D'`
-  # coffeelint: enable=no_backticks
+  clear: ->
+    readline.clearLine @stdout, 0
+    readline.moveCursor @stdout, -1 * @promptPrefix.length, 0
 
 ui = new Console()
 
@@ -29,10 +34,16 @@ client.connect()
 
 client
   .on 'connect', ->
-    ui.print chalk.green 'connected (press CTRL+C to quit)'
+    ui.print chalk.green 'connected (press CTRL+C to quit, :h for help)'
     ui.on 'line', (line) ->
       if line.trim() is ':h'
-        ui.print chalk.blue 'Usage:'
+        ui.print chalk.blue '''
+                            Usage:
+
+                              :h       -- show this help page
+                              :e [CMD] -- evaluate "client.CMD"
+
+                            '''
       else if line.match /:e (.*)/
         cmd = line.substr 3
           .trim()
