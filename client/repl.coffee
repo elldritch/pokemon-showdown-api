@@ -50,8 +50,8 @@ client
         try
           ret = eval "client.#{cmd}"
           ui.print chalk.blue "returned: #{ret}"
-        catch
-          ui.print chalk.red 'that command is invalid'
+        catch e
+          ui.print chalk.red e
       else
         client.socket.send line
       ui.prompt()

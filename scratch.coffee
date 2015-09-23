@@ -18,6 +18,6 @@ alice.on 'challenge', (challenges) ->
 bob.on 'internal:lexed', (message) ->
   if message.type is PokemonShowdownClient.MESSAGE_TYPES.ROOM_INIT.INIT
     console.log '[INIT]' + JSON.stringify message
-    bob.send '/challenge alice-the-combot,randombattle'
-  # else
-  #   console.log chalk.grey '[MESSAGE]' + JSON.stringify message
+    # bob.challenge 'alice-the-combot', format: 'randombattle'
+  else
+    console.log message

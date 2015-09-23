@@ -1,3 +1,15 @@
+# External API
+## PokemonShowdownClient
+
+## Battle
+
+## ChatRoom
+
+# Internal API
+## _Room
+
+---
+OLD DOCUMENTATION:
 # Events
 connect
 disconnect

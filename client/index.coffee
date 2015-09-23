@@ -21,21 +21,24 @@ splitFirst = (str, delimiter) -> [
   afterNext str, delimiter
 ]
 
-# Utility functions for handling login server interaction
-_loginServer = request.defaults
-  url: 'https://play.pokemonshowdown.com/action.php'
-  method: 'POST'
-loginServer = (options) -> _loginServer form: options
-
 # This is a client for Pokemon Showdown.
 class PokemonShowdownClient extends EventEmitter
-  constructor: ->
+  constructor: (
+    @server = 'ws://sim.smogon.com:8000/showdown/websocket',
+    @loginServer = 'https://play.pokemonshowdown.com/action.php'
+  ) ->
     @MESSAGE_TYPES = PokemonShowdownClient.MESSAGE_TYPES
-    @_challstr = ''
     @socket = null
+    @rooms = {}
+
+    @_challstr = ''
+    @_loginRequest = request.defaults
+      url: 'https://play.pokemonshowdown.com/action.php'
+      method: 'POST'
+    @_login = (options) -> @_loginRequest form: options
 
   connect: ->
-    @socket = new WebSocket 'ws://sim.smogon.com:8000/showdown/websocket'
+    @socket = new WebSocket @server
     @socket.on 'open', => @emit 'connect'
     @socket.on 'message', (data, flags) => @_handle data
 
@@ -45,12 +48,12 @@ class PokemonShowdownClient extends EventEmitter
 
   login: (name, pass) ->
     if name and pass and pass.length > 0
-      assertion = loginServer {act: 'login', name, pass, challstr: @_challstr}
+      assertion = @_login {act: 'login', name, pass, challstr: @_challstr}
         .spread (_, body) ->
           user = JSON.parse body.substr 1
           user.assertion
     else if name
-      assertion = loginServer
+      assertion = @_login
         act: 'getassertion'
         userid: name
         challstr: @_challstr
@@ -61,8 +64,21 @@ class PokemonShowdownClient extends EventEmitter
       @send "/trn #{name},0,#{assertion}"
       @.once 'internal:updateuser', => @emit 'login'
 
-  challenge: (name, {format, room}) -> throw new Error 'Not yet implemented'
-  respond: ({accept, reject}) -> throw new Error 'Not yet implemented'
+  # Challenge an opposing player to a battle
+  #
+  # String, {format: String, room: String}: Object -> ()
+  #
+  # Side effects:
+  # - Sends challenge command to PS
+  challenge: (name, {format = 'randombattle', room = ''}) ->
+    @send "/challenge #{name},#{format}", room
+
+  respond: ({accept = [], reject = []}) ->
+    for user in accept
+      @send "/accept #{user}"
+
+    for user in reject
+      @send "/reject #{user}"
 
   send: (message, room = '') ->
     payload = "#{room}|#{message}"
@@ -88,10 +104,10 @@ class PokemonShowdownClient extends EventEmitter
     lines = data.split '\n'
 
     if lines[0].startsWith '>'
-      room = 'global'
+      room = lines[0].substr 1
       lines.shift()
     else
-      room = lines[0].substr 1
+      room = 'global'
 
     (@_lexLine line, room for line in lines)
 
@@ -118,22 +134,22 @@ class PokemonShowdownClient extends EventEmitter
       when @MESSAGE_TYPES.GLOBAL.UPDATEUSER
         [username, named, avatar] = data.split '|'
         named = named is '1'
-        return {type, data: {username, named, avatar}}
+        return {type, data: {username, named, avatar}, room}
       when @MESSAGE_TYPES.GLOBAL.QUERYRESPONSE
         [querytype, json] = data.split '|'
         json = JSON.parse json
-        return {type, data: {querytype, json}}
+        return {type, data: {querytype, json}, room}
       when @MESSAGE_TYPES.GLOBAL.CHALLSTR
-        return {type, data}
+        return {type, data, room}
       when @MESSAGE_TYPES.GLOBAL.FORMATS
         # NOTE: this implementation is incomplete
         formats = data.split '|'
-        return {type, data: formats}
+        return {type, data: formats, room}
       when @MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
-        return {type, data: JSON.parse data}
+        return {type, data: JSON.parse data, room}
 
       when @MESSAGE_TYPES.ROOM_INIT.INIT
-        return {type, data}
+        return {type, data, room}
 
       when @MESSAGE_TYPES.ROOM_MESSAGES.CHAT
         sections = data.split '|'
@@ -142,13 +158,13 @@ class PokemonShowdownClient extends EventEmitter
         else
           timestamp = Date.now()
         [user, message] = sections
-        return {type, data: {timestamp, user, message}}
+        return {type, data: {timestamp, user, message}, room}
       when @MESSAGE_TYPES.ROOM_MESSAGES.JOIN
-        return {type, data}
+        return {type, data, room}
       when @MESSAGE_TYPES.ROOM_MESSAGES.LEAVE
-        return {type, data}
+        return {type, data, room}
 
-    return {type: @MESSAGE_TYPES.OTHER.UNKNOWN, data}
+    return {type: @MESSAGE_TYPES.OTHER.UNKNOWN, data, room}
 
   @MESSAGE_TYPES:
     OTHER:
@@ -239,5 +255,34 @@ class PokemonShowdownClient extends EventEmitter
       UPDATESEARCH: Symbol.for 'updatesearch'
       UPDATECHALLENGES: Symbol.for 'updatechallenges'
       QUERYRESPONSE: Symbol.for 'queryresponse'
+
+class _Room extends EventEmitter
+  constructor: ->
+    @_messages = []
+
+  @_handle: (message) -> @_messages.push message
+
+class Battle extends _Room
+  constructor: ->
+    @players = {}
+    @rated = false
+    @gametype = ''
+    @gen = 0
+    @tier = ''
+    @rules = []
+
+  @_handle: (message) ->
+
+  @GAME_TYPES:
+    SINGLES: Symbol.for 'singles'
+    DOUBLES: Symbol.for 'doubles'
+    TRIPLES: Symbol.for 'triples'
+
+class ChatRoom extends _Room
+  constructor: ->
+    @users = []
+    @messages = []
+
+  @_handle: (message) ->
 
 module.exports = {PokemonShowdownClient}
