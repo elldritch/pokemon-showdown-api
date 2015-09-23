@@ -5,15 +5,18 @@
   "main": "index.js",
   "dependencies": {
     "bluebird": "*",
-    "pokeapi": "*",
+
     "request": "*",
     "ws": "*"
   },
   "devDependencies": {
-    "chalk": "*"
+    "chalk": "*",
+
+    "mocha": "*",
+    "chai": "*"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --compilers coffee:coffee-script/register"
   },
   "author": "Leo Zhang <leo@leozhang.me> (http://leozhang.me/)",
   "license": "ISC"
