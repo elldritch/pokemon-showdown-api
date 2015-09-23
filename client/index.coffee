@@ -24,8 +24,8 @@ splitFirst = (str, delimiter) -> [
 # This is a client for Pokemon Showdown.
 class PokemonShowdownClient extends EventEmitter
   constructor: (
-    @server = 'ws://sim.smogon.com:8000/showdown/websocket',
-    @loginServer = 'https://play.pokemonshowdown.com/action.php'
+    @_server = 'ws://sim.smogon.com:8000/showdown/websocket',
+    @_loginServer = 'https://play.pokemonshowdown.com/action.php'
   ) ->
     @MESSAGE_TYPES = PokemonShowdownClient.MESSAGE_TYPES
     @socket = null
@@ -33,12 +33,12 @@ class PokemonShowdownClient extends EventEmitter
 
     @_challstr = ''
     @_loginRequest = request.defaults
-      url: 'https://play.pokemonshowdown.com/action.php'
+      url: @_loginServer
       method: 'POST'
     @_login = (options) -> @_loginRequest form: options
 
   connect: ->
-    @socket = new WebSocket @server
+    @socket = new WebSocket @_server
     @socket.on 'open', => @emit 'connect'
     @socket.on 'message', (data, flags) => @_handle data
 
@@ -46,9 +46,9 @@ class PokemonShowdownClient extends EventEmitter
     @socket.on 'close', (code, message) => @emit 'disconnect', code, message
     @socket.close()
 
-  login: (name, pass) ->
-    if name and pass and pass.length > 0
-      assertion = @_login {act: 'login', name, pass, challstr: @_challstr}
+  login: (name, password) ->
+    if name and password and password.length > 0
+      assertion = @_login {act: 'login', name, password, challstr: @_challstr}
         .spread (_, body) ->
           user = JSON.parse body.substr 1
           user.assertion
@@ -86,11 +86,11 @@ class PokemonShowdownClient extends EventEmitter
     @socket.send payload
 
   _handle: (data) ->
-    @emit 'internal:message', data
+    @emit 'internal:raw', data
     messages = @_lex data
 
     for message in messages
-      @emit 'internal:lexed', message
+      @emit 'internal:message', message
       switch message.type
         when @MESSAGE_TYPES.GLOBAL.CHALLSTR
           @_challstr = message.data
@@ -142,7 +142,7 @@ class PokemonShowdownClient extends EventEmitter
       when @MESSAGE_TYPES.GLOBAL.CHALLSTR
         return {type, data, room}
       when @MESSAGE_TYPES.GLOBAL.FORMATS
-        # NOTE: this implementation is incomplete
+        # TODO: this implementation is incomplete
         formats = data.split '|'
         return {type, data: formats, room}
       when @MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES

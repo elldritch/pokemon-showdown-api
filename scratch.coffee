@@ -15,7 +15,7 @@ bob.on 'login', -> bob.send '/join lobby'
 alice.on 'challenge', (challenges) ->
   console.log '[CHALLENGE]', challenges
 
-bob.on 'internal:lexed', (message) ->
+bob.on 'internal:message', (message) ->
   if message.type is PokemonShowdownClient.MESSAGE_TYPES.ROOM_INIT.INIT
     console.log '[INIT]' + JSON.stringify message
     # bob.challenge 'alice-the-combot', format: 'randombattle'

@@ -59,7 +59,7 @@ client
     ui.print chalk.green 'disconnected'
     ui.clear()
     process.exit 0
-  .on 'internal:message', (message) ->
+  .on 'internal:raw', (message) ->
     ui.print chalk.gray '< ' + message
 
 ui.on 'close', -> process.exit 0
