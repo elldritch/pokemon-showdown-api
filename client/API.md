@@ -1,16 +1,11 @@
-PokemonShowdownClient (aka PSC)
-
 # API Reference
 - PokemonShowdownClient
 - Battle
 - ChatRoom
 - _Room
 
-## PokemonShowdownClient
-### Methods
-#### `new PokemonShowdownClient(server: string, loginServer: string)`
-Constructs a new `PokemonShowdownClient`.
-
+## PokemonShowdownClient extends EventEmitter
+### Properties
 #### `.socket: WebSocket`
 #### `.rooms: {[roomName: string]: Battle | ChatRoom}`
 #### `._server: string`
@@ -18,6 +13,12 @@ Constructs a new `PokemonShowdownClient`.
 #### `._challstr: string`
 #### `._loginRequest(any): any`
 #### `._login(options: Object): any`
+
+#### `PokemonShowdownClient.MESSAGE_TYPES: {[messageType: string]: Symbol}`
+
+### Methods
+#### `new PokemonShowdownClient(server: string, loginServer: string)`
+Constructs a new `PokemonShowdownClient`.
 
 #### `.connect(): any`
 #### `.disconnect(): any`
@@ -29,11 +30,14 @@ Constructs a new `PokemonShowdownClient`.
 
 #### `.send(message: string, room: string): any`
 
-#### `._handle(data: any): any`
-#### `._lex(data: any): any`
-#### `._lexLine(line: any, room: any): any`
+#### `._handle(data: string): any`
+#### Messages
+`type Message = {type: Symbol, data: Object, room: string}`
 
-#### `.on(eventName: string, handler: Function): any`
+#### `._lex(data: string): Array<Message>`
+#### `._lexLine(line: string, room: string): Message`
+
+#### `.on(eventName: string, handler: Function): any` using `EventEmitter`
 
 ### Events
 #### `'connect'`
@@ -47,16 +51,42 @@ Constructs a new `PokemonShowdownClient`.
 #### `'internal:send'`
 #### `'internal:updateuser'`
 
-## Battle
+## Battle extends _Room
+### Properties
+#### `.players: {[playerPosition: string]: string}`
+#### `.rated: boolean`
+#### `.gametype: Symbol`
+#### `.gen: number`
+#### `.tier: string`
+#### `.rules: Array<{name: string, description: string}>`
+
+#### `Battle.GAME_TYPES: {[gameType: string]: Symbol}`
+
 ### Methods
+#### `new Battle()`
+#### `._handle(message: Message): any` overriding `_Room`
+
 ### Events
 
-## ChatRoom
+## ChatRoom extends _Room
+### Properties
+#### `.users: Array<string>`
+#### `.messages: Array<Message>`
+
 ### Methods
+#### `new ChatRoom()`
+#### `._handle(message: Message): any` overriding `_Room`
+
 ### Events
 
 ## _Room
 _Room is a superclass for rooms in PSC
 
+### Properties
+#### `._messages: Array<Message>`
+
 ### Methods
+#### `new _Room()`
+#### `._handle(message: Message): any`
+
 ### Events
