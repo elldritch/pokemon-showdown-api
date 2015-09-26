@@ -6,16 +6,29 @@
   "bin": {
     "pokerepl": "src/repl.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ilikebits/pokemon-showdown-client"
+  },
+  "bugs": {
+    "url": "https://github.com/ilikebits/pokemon-showdown-client/issues"
+  },
+  "keywords": [
+    "pokemon",
+    "showdown",
+    "api",
+    "client"
+  ],
   "dependencies": {
     "bluebird": "*",
+    "chalk": "*",
     "request": "*",
     "ws": "*"
   },
   "devDependencies": {
-    "chalk": "*",
-    "mocha": "*",
+    "coffee-script": "*",
     "chai": "*",
-    "coffee-script": "*"
+    "mocha": "*"
   },
   "scripts": {
     "prepublish": "find . | grep -v './node_modules\\|./.git' | grep .coffee$ | xargs coffee -c; sed -i '1i #!/usr/bin/env node' src/repl.js; chmod +x src/repl.js",

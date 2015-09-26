@@ -92,6 +92,7 @@ class PokemonShowdownClient extends EventEmitter
 
     for message in messages
       @emit 'internal:message', message
+
       switch message.type
         when MESSAGE_TYPES.GLOBAL.CHALLSTR
           @_challstr = message.data
@@ -100,6 +101,15 @@ class PokemonShowdownClient extends EventEmitter
           @emit 'internal:updateuser'
         when MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
           @emit 'challenge', message.data
+        when MESSAGE_TYPES.ROOM_INIT.INIT
+          @emit 'internal:debug', message
+          if message.data is 'chat'
+            @rooms[message.room] = new ChatRoom()
+          else if message.data is 'battle'
+            @rooms[message.room] = new Battle()
+
+      if message.room isnt 'global'
+        @rooms[message.room]._handle message
 
   _lex: (data) ->
     lines = data.split '\n'
@@ -114,7 +124,7 @@ class PokemonShowdownClient extends EventEmitter
 
   _lexLine: (line, room) ->
     if (line.startsWith '||') or not line.startsWith '|'
-      return type: MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data: line
+      return {type: MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data: line, room}
 
     line = line.substr 1
     [type, data] = splitFirst line, '|'
@@ -185,11 +195,6 @@ class Battle extends _Room
     @rules = []
 
   @_handle: (message) ->
-
-  @GAME_TYPES:
-    SINGLES: Symbol.for 'singles'
-    DOUBLES: Symbol.for 'doubles'
-    TRIPLES: Symbol.for 'triples'
 
 class ChatRoom extends _Room
   constructor: ->

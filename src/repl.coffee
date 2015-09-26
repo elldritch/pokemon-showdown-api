@@ -61,5 +61,8 @@ client
     process.exit 0
   .on 'internal:raw', (message) ->
     ui.print chalk.gray '< ' + message
+  .on 'internal:debug', (args...) ->
+    for arg in args
+      ui.print chalk.yellow '[DEBUG]' + JSON.stringify arg
 
 ui.on 'close', -> process.exit 0

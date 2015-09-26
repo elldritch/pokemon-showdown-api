@@ -1,2 +1,3 @@
 **/*.coffee
+coffeelint.json
 !node_modules/
