@@ -1,6 +1,6 @@
 {
   "name": "pokemon-showdown-client",
-  "version": "0.0.1",
+  "version": "0.0.2-0",
   "description": "PokemonShowdownClient (abbreviated PSC) is a high-level library for connecting to and interacting with the Pokemon Showdown server",
   "main": "index.js",
   "bin": {
@@ -8,16 +8,13 @@
   },
   "dependencies": {
     "bluebird": "*",
-
     "request": "*",
     "ws": "*"
   },
   "devDependencies": {
     "chalk": "*",
-
     "mocha": "*",
     "chai": "*",
-
     "coffee-script": "*"
   },
   "scripts": {
