@@ -1,4 +1,6 @@
 # API Reference
+In general, identifiers prefixed with `_` are intended to be private, and others are public.
+
 - PokemonShowdownClient
 - Battle
 - ChatRoom
@@ -80,7 +82,7 @@ Constructs a new `PokemonShowdownClient`.
 ### Events
 
 ## _Room
-_Room is a superclass for rooms in PSC
+_Room is a superclass for rooms in PSC. It provides base functionality for recording raw incoming messages.
 
 ### Properties
 #### `._messages: Array<Message>`

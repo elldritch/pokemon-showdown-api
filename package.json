@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "PokemonShowdownClient (abbreviated PSC) is a high-level library for connecting to and interacting with the Pokemon Showdown server",
   "main": "index.js",
+  "bin": {
+    "poke-client": "client/repl.js"
+  },
   "dependencies": {
     "bluebird": "*",
 
@@ -13,11 +16,13 @@
     "chalk": "*",
 
     "mocha": "*",
-    "chai": "*"
+    "chai": "*",
+
+    "coffee-script": "*"
   },
   "scripts": {
-    "prepublish": "find . | grep -v \"./node_modules\\|./.git\" | grep .coffee$ | xargs coffee -c",
-    "postpublish": "find . | grep -v \"./node_modules\\|./.git\" | grep .js$ | xargs rm -f",
+    "prepublish": "find . | grep -v './node_modules\\|./.git' | grep .coffee$ | xargs coffee -c; sed -i '1i #!/usr/bin/env node' client/repl.js; chmod +x client/repl.js",
+    "postpublish": "find . | grep -v './node_modules\\|./.git' | grep .js$ | xargs rm -f",
     "test": "mocha --compilers coffee:coffee-script/register"
   },
   "author": "Leo Zhang <leo@leozhang.me> (http://leozhang.me/)",
