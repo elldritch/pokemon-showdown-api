@@ -3,7 +3,7 @@ EventEmitter = require 'events'
 Promise = require 'bluebird'
 WebSocket = require 'ws'
 request = Promise.promisify require 'request'
-DOMPurify = require 'dompurify'
+sanitize = require 'sanitize-html'
 
 {toMessageType, MESSAGE_TYPES} = require './symbols'
 {ChatRoom} = require './ChatRoom'
@@ -134,6 +134,7 @@ class PokemonShowdownClient extends EventEmitter
       @rooms[newRoom.title].users = newRoom.users
       for message in newRoom.messages
         @rooms[newRoom.title]._handle message
+      @emit 'internal:init'
 
   _lex: (data) -> (@_lexLine line for line in data.split '\n')
 
@@ -206,7 +207,7 @@ class PokemonShowdownClient extends EventEmitter
         return {type, data: data.split ', '}
 
       when MESSAGE_TYPES.ROOM_MESSAGES.HTML
-        return {type, data: DOMPurify.sanitize data}
+        return {type, data: sanitize data}
       when MESSAGE_TYPES.ROOM_MESSAGES.JOIN
         return {type, data}
       when MESSAGE_TYPES.ROOM_MESSAGES.LEAVE

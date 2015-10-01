@@ -22,8 +22,8 @@
   "dependencies": {
     "bluebird": "*",
     "chalk": "*",
-    "dompurify": "*",
     "request": "*",
+    "sanitize-html": "*",
     "ws": "*"
   },
   "devDependencies": {
