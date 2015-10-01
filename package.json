@@ -22,6 +22,7 @@
   "dependencies": {
     "bluebird": "*",
     "chalk": "*",
+    "dompurify": "*",
     "request": "*",
     "ws": "*"
   },
@@ -33,10 +34,8 @@
   "scripts": {
     "prepublish": "find . | grep -v './node_modules\\|./.git' | grep .coffee$ | xargs coffee -c && sed -i '1i #!/usr/bin/env node' src/repl.js && chmod +x src/repl.js",
     "postpublish": "find . | grep -v './node_modules\\|./.git' | grep .js$ | xargs rm -f",
-
     "pretest": "# npm run install-dev",
     "test": "mocha --compilers coffee:coffee-script/register",
-
     "install-dev": "npm pack && export PACKED=$(npm ls --depth=0 | head -n 1 | cut -d ' ' -f 1 | tr @ -).tgz && npm install $PACKED && npm install -g $PACKED && npm run postpublish && rm $PACKED",
     "uninstall-dev": "npm uninstall pokemon-showdown-client && npm uninstall -g pokemon-showdown-client"
   },

@@ -3,26 +3,11 @@ EventEmitter = require 'events'
 Promise = require 'bluebird'
 WebSocket = require 'ws'
 request = Promise.promisify require 'request'
+DOMPurify = require 'dompurify'
 
 {toMessageType, MESSAGE_TYPES} = require './symbols'
 {ChatRoom} = require './ChatRoom'
 {Battle} = require './Battle'
-
-# Utility functions for dealing with strings
-## Remove a certain number of characters off the beginning and end of a string
-snip = (str, offStart, offEnd) -> str.substring offStart, str.length - offEnd
-
-## All characters until the next occurrence of delimiter.
-untilNext = (str, delimiter) -> str.substring 0, str.indexOf delimiter
-
-## All characters after the next occurrence of delimiter.
-afterNext = (str, delimiter) -> str.substring 1 + str.indexOf delimiter
-
-## Split on the first occurrence of delimiter.
-splitFirst = (str, delimiter) -> [
-  untilNext str, delimiter
-  afterNext str, delimiter
-]
 
 # This is a client for Pokemon Showdown.
 class PokemonShowdownClient extends EventEmitter
@@ -100,26 +85,26 @@ class PokemonShowdownClient extends EventEmitter
 
       switch message.type
         when MESSAGE_TYPES.GLOBAL.POPUP
-          continue
+          null
         when MESSAGE_TYPES.GLOBAL.PM
-          continue
+          null
         when MESSAGE_TYPES.GLOBAL.USERCOUNT
-          continue
+          null
         when MESSAGE_TYPES.GLOBAL.NAMETAKEN
-          continue
+          null
         when MESSAGE_TYPES.GLOBAL.CHALLSTR
           @_challstr = message.data
           @emit 'ready'
         when MESSAGE_TYPES.GLOBAL.UPDATEUSER
           @emit 'internal:updateuser'
         when MESSAGE_TYPES.GLOBAL.FORMATS
-          continue
+          null
         when MESSAGE_TYPES.GLOBAL.UPDATESEARCH
-          continue
+          null
         when MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
           @emit 'challenge', message.data
         when MESSAGE_TYPES.GLOBAL.QUERYRESPONSE
-          continue
+          null
 
         when MESSAGE_TYPES.ROOM_INIT.INIT
           makingNewRoom = true
@@ -153,13 +138,13 @@ class PokemonShowdownClient extends EventEmitter
   _lex: (data) -> (@_lexLine line for line in data.split '\n')
 
   _lexLine: (line) ->
-    if (line.startsWith '||') or not line.startsWith '|'
-      return {type: MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data: line}
     if line.startsWith '>'
       return {type: MESSAGE_TYPES.ROOM_MESSAGES.ROOMID, data: line.substr 1}
+    if (line.startsWith '||') or not line.startsWith '|'
+      return {type: MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data: line}
 
     line = line.substr 1
-    [type, data] = splitFirst line, '|'
+    [type, data] = line.split /\|(.+)/
     type = type.toLowerCase()
 
     abbreviations =
@@ -220,6 +205,15 @@ class PokemonShowdownClient extends EventEmitter
       when MESSAGE_TYPES.ROOM_INIT.USERLIST
         return {type, data: data.split ', '}
 
+      when MESSAGE_TYPES.ROOM_MESSAGES.HTML
+        return {type, data: DOMPurify.sanitize data}
+      when MESSAGE_TYPES.ROOM_MESSAGES.JOIN
+        return {type, data}
+      when MESSAGE_TYPES.ROOM_MESSAGES.LEAVE
+        return {type, data}
+      when MESSAGE_TYPES.ROOM_MESSAGES.NAME
+        [user, oldid] = data.split '|'
+        return {type, data: {user, oldid}}
       when MESSAGE_TYPES.ROOM_MESSAGES.CHAT
         sections = data.split '|'
         if sections.length is 3
@@ -228,10 +222,75 @@ class PokemonShowdownClient extends EventEmitter
           timestamp = Date.now()
         [user, message] = sections
         return {type, data: {timestamp, user, message}}
-      when MESSAGE_TYPES.ROOM_MESSAGES.JOIN
-        return {type, data}
-      when MESSAGE_TYPES.ROOM_MESSAGES.LEAVE
-        return {type, data}
+      when MESSAGE_TYPES.ROOM_MESSAGES.TIMESTAMP
+        return {type, data: new Date data}
+      when MESSAGE_TYPES.ROOM_MESSAGES.BATTLE
+        [roomid, user1, user2] = data.split '|'
+        return {type, data: {roomid, user1, user2}}
+
+    ###
+    TODO: finish lexing rules
+
+    BATTLE:
+      PLAYER: Symbol.for 'psc:token:player'
+      GAMETYPE: Symbol.for 'psc:token:gametype'
+      GEN: Symbol.for 'psc:token:gen'
+      TIER: Symbol.for 'psc:token:tier'
+      RATED: Symbol.for 'psc:token:rated'
+      RULE: Symbol.for 'psc:token:rule'
+      CLEARPOKE: Symbol.for 'psc:token:clearpoke'
+      POKE: Symbol.for 'psc:token:poke'
+      TEAMPREVIEW: Symbol.for 'psc:token:teampreview'
+      REQUEST: Symbol.for 'psc:token:request'
+      INACTIVE: Symbol.for 'psc:token:inactive'
+      INACTIVEOFF: Symbol.for 'psc:token:inactiveoff'
+      START: Symbol.for 'psc:token:start'
+      WIN: Symbol.for 'psc:token:win'
+      TIE: Symbol.for 'psc:token:tie'
+
+      ACTIONS:
+        MAJOR:
+          MOVE: Symbol.for 'psc:token:move'
+          SWITCH: Symbol.for 'psc:token:switch'
+          SWAP: Symbol.for 'psc:token:swap'
+          DETAILSCHANGE: Symbol.for 'psc:token:detailschange'
+          CANT: Symbol.for 'psc:token:cant'
+          FAINT: Symbol.for 'psc:token:faint'
+        MINOR:
+          FAIL: Symbol.for 'psc:token:-fail'
+          DAMAGE: Symbol.for 'psc:token:-damage'
+          HEAL: Symbol.for 'psc:token:-heal'
+          STATUS: Symbol.for 'psc:token:-status'
+          CURESTATUS: Symbol.for 'psc:token:-curestatus'
+          CURETEAM: Symbol.for 'psc:token:-cureteam'
+          BOOST: Symbol.for 'psc:token:-boost'
+          UNBOOST: Symbol.for 'psc:token:-unboost'
+          WEATHER: Symbol.for 'psc:token:-weather'
+          FIELDSTART: Symbol.for 'psc:token:-fieldstart'
+          FIELDEND: Symbol.for 'psc:token:-fieldend'
+          SIDESTART: Symbol.for 'psc:token:-sidestart'
+          SIDEEND: Symbol.for 'psc:token:-sideend'
+          CRIT: Symbol.for 'psc:token:-crit'
+          SUPEREFFECTIVE: Symbol.for 'psc:token:-supereffective'
+          RESISTED: Symbol.for 'psc:token:-resisted'
+          IMMUNE: Symbol.for 'psc:token:-immune'
+          ITEM: Symbol.for 'psc:token:-item'
+          ENDITEM: Symbol.for 'psc:token:-enditem'
+          ABILITY: Symbol.for 'psc:token:-ability'
+          ENDABILITY: Symbol.for 'psc:token:-endability'
+          TRANSFORM: Symbol.for 'psc:token:-transform'
+          MEGA: Symbol.for 'psc:token:-mega'
+          ACTIVATE: Symbol.for 'psc:token:-activate'
+          HINT: Symbol.for 'psc:token:-hint'
+          CENTER: Symbol.for 'psc:token:-center'
+          MESSAGE: Symbol.for 'psc:token:-message'
+      ACTIONREQUESTS:
+        TEAM: Symbol.for 'psc:token:team'
+        MOVE: Symbol.for 'psc:token:move'
+        SWITCH: Symbol.for 'psc:token:switch'
+        CHOOSE: Symbol.for 'psc:token:choose'
+        UNDO: Symbol.for 'psc:token:undo'
+    ###
 
     return {type: MESSAGE_TYPES.OTHER.UNKNOWN, data}
 
