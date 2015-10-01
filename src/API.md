@@ -47,13 +47,17 @@ Constructs a new `PokemonShowdownClient`.
 
 ##### `'ready'`
 ##### `'login'`
+##### `'challenge'`
+
+##### `'init:chat'`
+##### `'init:battle'`
 
 ##### `'internal:raw'`
 ##### `'internal:message'`
 ##### `'internal:send'`
 ##### `'internal:updateuser'`
 
-## Battle extends _Room
+## Battle extends EventEmitter
 ### Properties
 ##### `.players: {[playerPosition: string]: string}`
 ##### `.rated: boolean`
@@ -66,29 +70,20 @@ Constructs a new `PokemonShowdownClient`.
 
 ### Methods
 ##### `new Battle()`
-##### `._handle(message: Message): any` overriding `_Room`
+##### `.on(eventName: string, handler: Function): any` using `EventEmitter`
 
 ### Events
+##### `'turn'`
+##### `'timer'`
 
-## ChatRoom extends _Room
+## ChatRoom extends EventEmitter
 ### Properties
 ##### `.users: Array<string>`
 ##### `.messages: Array<Message>`
 
 ### Methods
 ##### `new ChatRoom()`
-##### `._handle(message: Message): any` overriding `_Room`
+##### `.on(eventName: string, handler: Function): any` using `EventEmitter`
 
 ### Events
-
-## _Room
-_Room is a superclass for rooms in PSC. It provides base functionality for recording raw incoming messages.
-
-### Properties
-##### `._messages: Array<Message>`
-
-### Methods
-##### `new _Room()`
-##### `._handle(message: Message): any`
-
-### Events
+##### `'chat'`

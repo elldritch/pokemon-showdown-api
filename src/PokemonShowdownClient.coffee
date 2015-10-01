@@ -78,7 +78,7 @@ class PokemonShowdownClient extends EventEmitter
     roomId = 'Lobby'
 
     makingNewRoom = false
-    newRoom = {type: '', title: '', users: [], messages: []}
+    newRoom = messages: []
 
     for message in messages
       @emit 'internal:message', message
@@ -127,14 +127,17 @@ class PokemonShowdownClient extends EventEmitter
             @rooms[roomId]._handle message
 
     if makingNewRoom
-      if newRoom.type is 'chat'
-        @rooms[newRoom.title] = new ChatRoom()
-      else if newRoom.type is 'battle'
-        @rooms[newRoom.title] = new Battle()
-      @rooms[newRoom.title].users = newRoom.users
+      switch newRoom.type
+        when 'chat'
+          room = new ChatRoom()
+        when 'battle'
+          room = new Battle()
+      room.users = newRoom.users
       for message in newRoom.messages
-        @rooms[newRoom.title]._handle message
-      @emit 'internal:init'
+        room._handle message
+
+      @rooms[newRoom.title] = room
+      @emit "init:#{newRoom.type}", room
 
   _lex: (data) -> (@_lexLine line for line in data.split '\n')
 

@@ -30,6 +30,8 @@ class Console extends EventEmitter
 
 ui = new Console()
 
+dump = (obj) -> util.inspect obj, showHidden: true, depth: null
+
 client = new PokemonShowdownClient()
 client.connect()
 
@@ -50,7 +52,7 @@ client
           .trim()
         try
           ret = eval "client.#{cmd}"
-          ui.print chalk.blue "returned: #{ret}"
+          ui.print chalk.blue "returned: #{dump ret}"
         catch e
           ui.print chalk.red e
       else
@@ -63,7 +65,7 @@ client
   .on 'internal:raw', (message) ->
     ui.print chalk.gray '< ' + message
   .on 'internal:message', (message) ->
-    ui.print chalk.magenta '< ' + util.inspect message, showHidden: true
+    ui.print chalk.magenta '< ' + dump message
   .on 'internal:debug', (args...) ->
     for arg in args
       ui.print chalk.yellow '[DEBUG]' + JSON.stringify arg
