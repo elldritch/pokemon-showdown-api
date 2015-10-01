@@ -5,6 +5,6 @@ class ChatRoom extends EventEmitter
     @users = []
     @messages = []
 
-  @_handle: (message) ->
+  _handle: (message) ->
 
 module.exports = {ChatRoom}

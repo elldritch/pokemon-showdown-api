@@ -9,6 +9,6 @@ class Battle extends EventEmitter
     @tier = ''
     @rules = []
 
-  @_handle: (message) ->
+  _handle: (message) ->
 
 module.exports = {Battle}

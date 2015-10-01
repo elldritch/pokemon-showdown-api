@@ -90,42 +90,73 @@ class PokemonShowdownClient extends EventEmitter
   _handle: (data) ->
     @emit 'internal:raw', data
     messages = @_lex data
+    roomId = 'Lobby'
+
+    makingNewRoom = false
+    newRoom = {type: '', title: '', users: [], messages: []}
 
     for message in messages
       @emit 'internal:message', message
 
       switch message.type
+        when MESSAGE_TYPES.GLOBAL.POPUP
+          continue
+        when MESSAGE_TYPES.GLOBAL.PM
+          continue
+        when MESSAGE_TYPES.GLOBAL.USERCOUNT
+          continue
+        when MESSAGE_TYPES.GLOBAL.NAMETAKEN
+          continue
         when MESSAGE_TYPES.GLOBAL.CHALLSTR
           @_challstr = message.data
           @emit 'ready'
         when MESSAGE_TYPES.GLOBAL.UPDATEUSER
           @emit 'internal:updateuser'
+        when MESSAGE_TYPES.GLOBAL.FORMATS
+          continue
+        when MESSAGE_TYPES.GLOBAL.UPDATESEARCH
+          continue
         when MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
           @emit 'challenge', message.data
+        when MESSAGE_TYPES.GLOBAL.QUERYRESPONSE
+          continue
+
         when MESSAGE_TYPES.ROOM_INIT.INIT
-          @emit 'internal:debug', message
-          if message.data is 'chat'
-            @rooms[message.room] = new ChatRoom()
-          else if message.data is 'battle'
-            @rooms[message.room] = new Battle()
+          makingNewRoom = true
+          newRoom.type = message.data
+        when MESSAGE_TYPES.ROOM_INIT.TITLE
+          newRoom.title = message.data
+        when MESSAGE_TYPES.ROOM_INIT.USERLIST
+          newRoom.users = message.data
 
-      if message.room isnt 'global'
-        @rooms[message.room]._handle message
+        when MESSAGE_TYPES.ROOM_MESSAGES.ROOMID
+          room = message.data
 
-  _lex: (data) ->
-    lines = data.split '\n'
+        when MESSAGE_TYPES.OTHER.UNKNOWN
+          @emit 'internal:unknown'
 
-    if lines[0].startsWith '>'
-      room = lines[0].substr 1
-      lines.shift()
-    else
-      room = 'global'
+        else
+          if makingNewRoom
+            newRoom.messages.push message
+          else
+            @rooms[roomId]._handle message
 
-    (@_lexLine line, room for line in lines)
+    if makingNewRoom
+      if newRoom.type is 'chat'
+        @rooms[newRoom.title] = new ChatRoom()
+      else if newRoom.type is 'battle'
+        @rooms[newRoom.title] = new Battle()
+      @rooms[newRoom.title].users = newRoom.users
+      for message in newRoom.messages
+        @rooms[newRoom.title]._handle message
 
-  _lexLine: (line, room) ->
+  _lex: (data) -> (@_lexLine line for line in data.split '\n')
+
+  _lexLine: (line) ->
     if (line.startsWith '||') or not line.startsWith '|'
-      return {type: MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data: line, room}
+      return {type: MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE, data: line}
+    if line.startsWith '>'
+      return {type: MESSAGE_TYPES.ROOM_MESSAGES.ROOMID, data: line.substr 1}
 
     line = line.substr 1
     [type, data] = splitFirst line, '|'
@@ -138,30 +169,56 @@ class PokemonShowdownClient extends EventEmitter
       l: 'leave'
       n: 'name'
       b: 'battle'
+      ':': 'timestamp'
+      'users': 'userlist'
 
     if type of abbreviations then type = abbreviations[type]
     type = toMessageType type
 
     switch type
+      when MESSAGE_TYPES.GLOBAL.POPUP
+        return {type, data: data.replace /\|\|/g, '\n'}
+      when MESSAGE_TYPES.GLOBAL.PM
+        [sender, receiver, message] = data.split '|'
+        return {type, data: {sender, receiver, message}}
+      when MESSAGE_TYPES.GLOBAL.USERCOUNT
+        return {type, data: parseInt data}
+      when MESSAGE_TYPES.GLOBAL.NAMETAKEN
+        [username, message] = data.split '|'
+        return {type, data: {username, message}}
+      when MESSAGE_TYPES.GLOBAL.CHALLSTR
+        return {type, data}
       when MESSAGE_TYPES.GLOBAL.UPDATEUSER
         [username, named, avatar] = data.split '|'
-        named = named is '1'
-        return {type, data: {username, named, avatar}, room}
+        return {type, data: {username, named: named is '1', avatar}}
+      when MESSAGE_TYPES.GLOBAL.FORMATS
+        ###
+        This server supports the formats specified in FORMATSLIST. FORMATSLIST
+        is a |-separated list of FORMATs. FORMAT is a format name with one or
+        more of these suffixes: ,# if the format uses random teams, ,, if the
+        format is only available for searching, and , if the format is only
+        available for challenging. Sections are separated by two vertical bars
+        with the number of the column of that section prefixed by , in it. After
+        that follows the name of the section and another vertical bar.
+
+        TODO: finish implementation.
+        ###
+        formats = data.split '|'
+        return {type, data: formats}
+      when MESSAGE_TYPES.GLOBAL.UPDATESEARCH
+        return {type, data: JSON.parse data}
+      when MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
+        return {type, data: JSON.parse data}
       when MESSAGE_TYPES.GLOBAL.QUERYRESPONSE
         [querytype, json] = data.split '|'
-        json = JSON.parse json
-        return {type, data: {querytype, json}, room}
-      when MESSAGE_TYPES.GLOBAL.CHALLSTR
-        return {type, data, room}
-      when MESSAGE_TYPES.GLOBAL.FORMATS
-        # TODO: this implementation is incomplete
-        formats = data.split '|'
-        return {type, data: formats, room}
-      when MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
-        return {type, data: JSON.parse data, room}
+        return {type, data: {querytype, json: JSON.parse json}}
 
       when MESSAGE_TYPES.ROOM_INIT.INIT
-        return {type, data, room}
+        return {type, data}
+      when MESSAGE_TYPES.ROOM_INIT.TITLE
+        return {type, data}
+      when MESSAGE_TYPES.ROOM_INIT.USERLIST
+        return {type, data: data.split ', '}
 
       when MESSAGE_TYPES.ROOM_MESSAGES.CHAT
         sections = data.split '|'
@@ -170,13 +227,13 @@ class PokemonShowdownClient extends EventEmitter
         else
           timestamp = Date.now()
         [user, message] = sections
-        return {type, data: {timestamp, user, message}, room}
+        return {type, data: {timestamp, user, message}}
       when MESSAGE_TYPES.ROOM_MESSAGES.JOIN
-        return {type, data, room}
+        return {type, data}
       when MESSAGE_TYPES.ROOM_MESSAGES.LEAVE
-        return {type, data, room}
+        return {type, data}
 
-    return {type: MESSAGE_TYPES.OTHER.UNKNOWN, data, room}
+    return {type: MESSAGE_TYPES.OTHER.UNKNOWN, data}
 
   @MESSAGE_TYPES: MESSAGE_TYPES
 

@@ -1,5 +1,6 @@
 EventEmitter = require 'events'
 readline = require 'readline'
+util = require 'util'
 
 chalk = require 'chalk'
 
@@ -61,6 +62,8 @@ client
     process.exit 0
   .on 'internal:raw', (message) ->
     ui.print chalk.gray '< ' + message
+  .on 'internal:message', (message) ->
+    ui.print chalk.magenta '< ' + util.inspect message, showHidden: true
   .on 'internal:debug', (args...) ->
     for arg in args
       ui.print chalk.yellow '[DEBUG]' + JSON.stringify arg
