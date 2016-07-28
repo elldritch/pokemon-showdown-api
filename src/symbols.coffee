@@ -7,18 +7,19 @@ MESSAGE_TYPES =
   ROOM_INIT:
     INIT: Symbol.for 'psc:token:init'
     TITLE: Symbol.for 'psc:token:title'
-    USERLIST: Symbol.for 'psc:token:userlist'
+    USERS: Symbol.for 'psc:token:users'
 
   ROOM_MESSAGES:
-    ROOMID: Symbol.for 'psc:token:roomid'
     MESSAGE: Symbol.for 'psc:token:message'
     HTML: Symbol.for 'psc:token:html'
     JOIN: Symbol.for 'psc:token:join'
     LEAVE: Symbol.for 'psc:token:leave'
     NAME: Symbol.for 'psc:token:name'
     CHAT: Symbol.for 'psc:token:chat'
+    CHAT_TIMESTAMP: Symbol.for 'psc:token:chat+timestamp'
     TIMESTAMP: Symbol.for 'psc:token:timestamp'
     BATTLE: Symbol.for 'psc:token:battle'
+    RAW: Symbol.for 'psc:token:raw'
 
   BATTLE:
     PLAYER: Symbol.for 'psc:token:player'
