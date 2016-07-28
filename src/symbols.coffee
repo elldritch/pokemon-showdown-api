@@ -43,6 +43,7 @@ MESSAGE_TYPES =
       MAJOR:
         MOVE: Symbol.for 'psc:token:move'
         SWITCH: Symbol.for 'psc:token:switch'
+        DRAG: Symbol.for 'psc:token:drag'
         SWAP: Symbol.for 'psc:token:swap'
         DETAILSCHANGE: Symbol.for 'psc:token:detailschange'
         CANT: Symbol.for 'psc:token:cant'
@@ -75,12 +76,6 @@ MESSAGE_TYPES =
         HINT: Symbol.for 'psc:token:-hint'
         CENTER: Symbol.for 'psc:token:-center'
         MESSAGE: Symbol.for 'psc:token:-message'
-    ACTIONREQUESTS:
-      TEAM: Symbol.for 'psc:token:team'
-      MOVE: Symbol.for 'psc:token:move'
-      SWITCH: Symbol.for 'psc:token:switch'
-      CHOOSE: Symbol.for 'psc:token:choose'
-      UNDO: Symbol.for 'psc:token:undo'
 
   GLOBAL:
     POPUP: Symbol.for 'psc:token:popup'

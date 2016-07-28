@@ -69,5 +69,7 @@ client
   .on 'internal:debug', (args...) ->
     for arg in args
       ui.print chalk.yellow '[DEBUG]' + JSON.stringify arg
+  .on 'error', (err) ->
+    ui.print chalk.red '[ERROR]' + JSON.stringify err
 
 ui.on 'close', -> process.exit 0

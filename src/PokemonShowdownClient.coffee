@@ -97,9 +97,8 @@ class PokemonShowdownClient extends EventEmitter
           null
         when MESSAGE_TYPES.GLOBAL.NAMETAKEN
           @emit 'error',
-            action: 'login'
-            code: 'ERR_LOGIN_NAME_TAKEN'
-            message: 'Name already taken'
+            code: 'ERR_LOGIN_FAILED'
+            message: message.data.message
         when MESSAGE_TYPES.GLOBAL.CHALLSTR
           @_challstr = message.data
           @emit 'ready'
@@ -249,69 +248,131 @@ class PokemonShowdownClient extends EventEmitter
         [roomid, user1, user2] = data.split '|'
         return {type, data: {roomid, user1, user2}}
 
-    ###
-    TODO: finish lexing rules
+      when MESSAGE_TYPES.BATTLE.PLAYER
+        [player, username, avatar] = data.split '|'
+        return {type, data: {player, username, avatar}}
+      when MESSAGE_TYPES.BATTLE.GAMETYPE
+        return {type, data}
+      when MESSAGE_TYPES.BATTLE.GEN
+        return {type, data: parseInt data}
+      when MESSAGE_TYPES.BATTLE.TIER
+        return {type, data}
+      when MESSAGE_TYPES.BATTLE.RATED
+        return {type}
+      when MESSAGE_TYPES.BATTLE.RULE
+        [name, description] = data.split ': '
+        return {type, data: {name, description}}
+      when MESSAGE_TYPES.BATTLE.CLEARPOKE
+        null
+      when MESSAGE_TYPES.BATTLE.POKE
+        null
+      when MESSAGE_TYPES.BATTLE.TEAMPREVIEW
+        null
+      when MESSAGE_TYPES.BATTLE.REQUEST
+        return {type, data: JSON.parse data}
+      when MESSAGE_TYPES.BATTLE.INACTIVE
+        return {type, data}
+      when MESSAGE_TYPES.BATTLE.INACTIVEOFF
+        return {type, data}
+      when MESSAGE_TYPES.BATTLE.START
+        return {type}
+      when MESSAGE_TYPES.BATTLE.WIN
+        return {type, data}
+      when MESSAGE_TYPES.BATTLE.TIE
+        return {type}
 
-    BATTLE:
-      PLAYER: Symbol.for 'psc:token:player'
-      GAMETYPE: Symbol.for 'psc:token:gametype'
-      GEN: Symbol.for 'psc:token:gen'
-      TIER: Symbol.for 'psc:token:tier'
-      RATED: Symbol.for 'psc:token:rated'
-      RULE: Symbol.for 'psc:token:rule'
-      CLEARPOKE: Symbol.for 'psc:token:clearpoke'
-      POKE: Symbol.for 'psc:token:poke'
-      TEAMPREVIEW: Symbol.for 'psc:token:teampreview'
-      REQUEST: Symbol.for 'psc:token:request'
-      INACTIVE: Symbol.for 'psc:token:inactive'
-      INACTIVEOFF: Symbol.for 'psc:token:inactiveoff'
-      START: Symbol.for 'psc:token:start'
-      WIN: Symbol.for 'psc:token:win'
-      TIE: Symbol.for 'psc:token:tie'
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.MOVE
+        [pokemon, move, target] = data.split '|'
+        return {type, data: {pokemon, move, target}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.SWITCH
+        [pokemon, details, hpStatus] = data.split '|'
+        [hp, status] = hpStatus.split ' '
+        return {type, data: {pokemon, details, hp, status}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.DRAG
+        [pokemon, details, hpStatus] = data.split '|'
+        [hp, status] = hpStatus.split ' '
+        return {type, data: {pokemon, details, hp, status}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.SWAP
+        [pokemon, position] = data.split '|'
+        return {type, data: {pokemon, position}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.DETAILSCHANGE
+        null
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.CANT
+        [pokemon, reason, move] = data.split '|'
+        return {type, data: {pokemon, reason, move}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.FAINT
+        return {type, data: pokemon: data}
 
-      ACTIONS:
-        MAJOR:
-          MOVE: Symbol.for 'psc:token:move'
-          SWITCH: Symbol.for 'psc:token:switch'
-          SWAP: Symbol.for 'psc:token:swap'
-          DETAILSCHANGE: Symbol.for 'psc:token:detailschange'
-          CANT: Symbol.for 'psc:token:cant'
-          FAINT: Symbol.for 'psc:token:faint'
-        MINOR:
-          FAIL: Symbol.for 'psc:token:-fail'
-          DAMAGE: Symbol.for 'psc:token:-damage'
-          HEAL: Symbol.for 'psc:token:-heal'
-          STATUS: Symbol.for 'psc:token:-status'
-          CURESTATUS: Symbol.for 'psc:token:-curestatus'
-          CURETEAM: Symbol.for 'psc:token:-cureteam'
-          BOOST: Symbol.for 'psc:token:-boost'
-          UNBOOST: Symbol.for 'psc:token:-unboost'
-          WEATHER: Symbol.for 'psc:token:-weather'
-          FIELDSTART: Symbol.for 'psc:token:-fieldstart'
-          FIELDEND: Symbol.for 'psc:token:-fieldend'
-          SIDESTART: Symbol.for 'psc:token:-sidestart'
-          SIDEEND: Symbol.for 'psc:token:-sideend'
-          CRIT: Symbol.for 'psc:token:-crit'
-          SUPEREFFECTIVE: Symbol.for 'psc:token:-supereffective'
-          RESISTED: Symbol.for 'psc:token:-resisted'
-          IMMUNE: Symbol.for 'psc:token:-immune'
-          ITEM: Symbol.for 'psc:token:-item'
-          ENDITEM: Symbol.for 'psc:token:-enditem'
-          ABILITY: Symbol.for 'psc:token:-ability'
-          ENDABILITY: Symbol.for 'psc:token:-endability'
-          TRANSFORM: Symbol.for 'psc:token:-transform'
-          MEGA: Symbol.for 'psc:token:-mega'
-          ACTIVATE: Symbol.for 'psc:token:-activate'
-          HINT: Symbol.for 'psc:token:-hint'
-          CENTER: Symbol.for 'psc:token:-center'
-          MESSAGE: Symbol.for 'psc:token:-message'
-      ACTIONREQUESTS:
-        TEAM: Symbol.for 'psc:token:team'
-        MOVE: Symbol.for 'psc:token:move'
-        SWITCH: Symbol.for 'psc:token:switch'
-        CHOOSE: Symbol.for 'psc:token:choose'
-        UNDO: Symbol.for 'psc:token:undo'
-    ###
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.FAIL
+        [pokemon, action] = data.split '|'
+        return {type, data: {pokemon, action}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.DAMAGE
+        [pokemon, hpStatus] = data.split '|'
+        [hp, status] = hpStatus.split ' '
+        return {type, data: {pokemon, hp, status}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.HEAL
+        [pokemon, hpStatus] = data.split '|'
+        [hp, status] = hpStatus.split ' '
+        return {type, data: {pokemon, hp, status}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.STATUS
+        [pokemon, status] = data.split '|'
+        return {type, data: {pokemon, status}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.CURESTATUS
+        [pokemon, status] = data.split '|'
+        return {type, data: {pokemon, status}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.CURETEAM
+        return {type, data: pokemon: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.BOOST
+        [pokemon, status, amount] = data.split '|'
+        return {type, data: {pokemon, status, amount}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.UNBOOST
+        [pokemon, status, amount] = data.split '|'
+        return {type, data: {pokemon, status, amount}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.WEATHER
+        return {type, data: weather: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.FIELDSTART
+        return {type, data: condition: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.FIELDEND
+        return {type, data: condition: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.SIDESTART
+        [side, condition] = data.split '|'
+        return {type, data: {side, condition}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.SIDEEND
+        [side, condition] = data.split '|'
+        return {type, data: {side, condition}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.CRIT
+        return {type, data: pokemon: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.SUPEREFFECTIVE
+        return {type, data: pokemon: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.RESISTED
+        return {type, data: pokemon: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.IMMUNE
+        return {type, data: pokemon: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.ITEM
+        [pokemon, item] = data.split '|'
+        return {type, data: {pokemon, item}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.ENDITEM
+        [pokemon, item] = data.split '|'
+        return {type, data: {pokemon, item}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.ABILITY
+        [pokemon, ability] = data.split '|'
+        return {type, data: {pokemon, ability}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.ENDABILITY
+        return {type, data: pokemon: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.TRANSFORM
+        [pokemon, species] = data.split '|'
+        return {type, data: {pokemon, species}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.MEGA
+        [pokemon, megastone] = data.split '|'
+        return {type, data: {pokemon, megastone}}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.ACTIVATE
+        return {type, data: effect: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.HINT
+        return {type, data: message: data}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.CENTER
+        return {type}
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.MESSAGE
+        return {type, data: message: data}
 
     return {type: MESSAGE_TYPES.OTHER.UNKNOWN, data}
 
@@ -320,6 +381,9 @@ class PokemonShowdownClient extends EventEmitter
   challenge: (name, {format = 'randombattle', room = ''}) -> @send "/challenge #{name},#{format}", room
   accept: (user) -> @send "/accept #{user}"
   reject: (user) -> @send "/reject #{user}"
+
+  move: (move, room) -> @send "/move #{move}", room
+  switch: (index, room) -> @send "/switch #{index}", room
 
   join: (room) -> @send "/join #{room}"
 
