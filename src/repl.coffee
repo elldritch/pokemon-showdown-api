@@ -44,14 +44,14 @@ client
                             Usage:
 
                               :h       -- show this help page
-                              :e [CMD] -- evaluate "client.CMD"
+                              :e [CMD] -- evaluate CMD
 
                             '''
       else if line.match /:e (.*)/
         cmd = line.substr 3
           .trim()
         try
-          ret = eval "client.#{cmd}"
+          ret = eval cmd
           ui.print chalk.blue "returned: #{dump ret}"
         catch e
           ui.print chalk.red e
