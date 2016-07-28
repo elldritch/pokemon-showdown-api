@@ -6,6 +6,7 @@ MESSAGE_TYPES =
 
   ROOM_INIT:
     INIT: Symbol.for 'psc:token:init'
+    DEINIT: Symbol.for 'psc:token:deinit'
     TITLE: Symbol.for 'psc:token:title'
     USERS: Symbol.for 'psc:token:users'
 

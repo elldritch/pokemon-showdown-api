@@ -6,8 +6,6 @@ request = Promise.promisify require 'request'
 sanitize = require 'sanitize-html'
 
 {toMessageType, MESSAGE_TYPES} = require './symbols'
-{ChatRoom} = require './ChatRoom'
-{Battle} = require './Battle'
 
 # This is a client for Pokemon Showdown.
 class PokemonShowdownClient extends EventEmitter
@@ -118,16 +116,21 @@ class PokemonShowdownClient extends EventEmitter
           null
 
         when MESSAGE_TYPES.ROOM_INIT.INIT
-          @emit 'new-room', message.room
+          @emit 'join:room', message.room
           @rooms[message.room].type = message.data
+        when MESSAGE_TYPES.ROOM_INIT.DEINIT
+          @emit 'leave:room', message.room
+          delete @rooms[message.room]
         when MESSAGE_TYPES.ROOM_INIT.TITLE
           @rooms[message.room].title = message.data
         when MESSAGE_TYPES.ROOM_INIT.USERS
           @rooms[message.room].users = message.data
 
         when MESSAGE_TYPES.ROOM_MESSAGES.JOIN
+          @emit 'join:user', message.data
           @rooms[message.room].users.push message.data
         when MESSAGE_TYPES.ROOM_MESSAGES.LEAVE
+          @emit 'leave:user', message.data
           for i in [0...@rooms[message.room].users.length]
             if @rooms[message.room].users[i] is message.data
               @rooms[message.room].users.splice i, 1
@@ -214,6 +217,8 @@ class PokemonShowdownClient extends EventEmitter
         return {type, data: {querytype, json: JSON.parse json}, room: 'global'}
 
       when MESSAGE_TYPES.ROOM_INIT.INIT
+        return {type, data}
+      when MESSAGE_TYPES.ROOM_INIT.DEINIT
         return {type, data}
       when MESSAGE_TYPES.ROOM_INIT.TITLE
         return {type, data}
