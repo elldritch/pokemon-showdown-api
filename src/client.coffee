@@ -8,7 +8,7 @@ sanitize = require 'sanitize-html'
 {toMessageType, MESSAGE_TYPES} = require './symbols'
 
 # This is a client for Pokemon Showdown.
-class PokemonShowdownClient extends EventEmitter
+class PokeClient extends EventEmitter
   constructor: (
     @_server = 'ws://sim.smogon.com:8000/showdown/websocket',
     @_loginServer = 'https://play.pokemonshowdown.com/action.php'
@@ -407,4 +407,4 @@ For an overview of room commands, use /roomhelp
 For details of a specific command, use something like: /help data
 ###
 
-module.exports = {PokemonShowdownClient}
+module.exports = {PokeClient}

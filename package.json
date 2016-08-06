@@ -1,17 +1,17 @@
 {
-  "name": "pokemon-showdown-client",
+  "name": "pokemon-showdown-api",
   "version": "0.0.3",
-  "description": "PokemonShowdownClient (abbreviated PSC) is a high-level library for connecting to and interacting with the Pokemon Showdown server",
+  "description": "A low-level library for connecting to and interacting with the Pokemon Showdown server",
   "main": "index.js",
   "bin": {
     "pokerepl": "src/repl.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ilikebits/pokemon-showdown-client"
+    "url": "https://github.com/ilikebits/pokemon-showdown-api"
   },
   "bugs": {
-    "url": "https://github.com/ilikebits/pokemon-showdown-client/issues"
+    "url": "https://github.com/ilikebits/pokemon-showdown-api/issues"
   },
   "keywords": [
     "pokemon",
@@ -37,7 +37,7 @@
     "pretest": "# npm run install-dev",
     "test": "mocha --compilers coffee:coffee-script/register",
     "install-dev": "npm pack && export PACKED=$(npm ls --depth=0 | head -n 1 | cut -d ' ' -f 1 | tr @ -).tgz && npm install $PACKED && npm install -g $PACKED && npm run postpublish && rm $PACKED",
-    "uninstall-dev": "npm uninstall pokemon-showdown-client && npm uninstall -g pokemon-showdown-client"
+    "uninstall-dev": "npm uninstall pokemon-showdown-api && npm uninstall -g pokemon-showdown-api"
   },
   "author": "Leo Zhang <leo@leozhang.me> (http://leozhang.me/)",
   "license": "ISC"

@@ -1,1 +1,1 @@
-module.exports = require './PokemonShowdownClient'
+module.exports = require './client'
