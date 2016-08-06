@@ -4,7 +4,7 @@ util = require 'util'
 
 chalk = require 'chalk'
 
-{PokemonShowdownClient} = require './'
+{PokeClient} = require './'
 
 class Console extends EventEmitter
   constructor: ({
@@ -32,7 +32,7 @@ ui = new Console()
 
 dump = (obj) -> util.inspect obj, showHidden: true, depth: null
 
-client = new PokemonShowdownClient()
+client = new PokeClient()
 client.connect()
 
 client
