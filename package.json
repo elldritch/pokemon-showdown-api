@@ -1,6 +1,6 @@
 {
   "name": "pokemon-showdown-api",
-  "version": "0.0.3",
+  "version": "0.0.1",
   "description": "A low-level library for connecting to and interacting with the Pokemon Showdown server",
   "main": "index.js",
   "bin": {

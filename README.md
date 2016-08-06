@@ -1,38 +1,99 @@
-# PokemonShowdownClient
+# pokemon-showdown-api
 
-PokemonShowdownClient (abbreviated PSC) is a high-level library for connecting
-to and interacting with the Pokemon Showdown server.
+`pokemon-showdown-api` is a low-level library for connecting to and interacting
+with the Pokemon Showdown server.
+
+**This package is under heavy development, and is nowhere near complete.**
 
 ## Overview
 
-The design goals for PSC are as follows:
+This package presents a low-level API for interacting with Pokemon Showdown
+servers, and tries to avoid making any assumptions about the consumer's goals.
+In particular, this API is designed so that _other_ APIs can be built on top of
+it (for example, to add logic for handling rooms or battles).
 
-1. Explicit support for battling.
-2. A high level interface, with concepts of "turns" and "battles".
-3. Fast code.
-4. Good testability.
+Explicit goals:
+1. Don't leak memory over time (this is critical for long-running consumers).
+2. Be fast.
 
-The code is organised around a high-level concept of a Client, which represents the actions of a single user. This user can create rooms, which are divided into battles and chat rooms. Actions that users would normally perform globally (e.g. renaming themselves, sending or receiving challenges, etc.) are delegated to the client, while room-specific actions (e.g. picking a move in a battle) are delegated to the specific room.
+(Goal 1 implies that this library shouldn't store messages, instead delegating
+that to the consumer.)
+
+These lead to two explicit non-goals:
+1. No handling logic for rooms.
+2. No handling logic for battles.
+
+Instead, this API is built to enable additional libraries to provide such
+functionality.
 
 ## Usage
 
-To install, run `npm install pokemon-showdown-client`.
+To install, run `npm install pokemon-showdown-api`.
 
-## Internals
+(If you want to use a REPL to try and interact with Pokemon Showdown from the
+command line, try out `npm install --global pokemon-showdown-api` and use
+`pokerepl`.)
 
-When the client receives a message from the server, it calls its `_handle` method, which lexes the message into an internal representation known as a `Message`. If these messages are room-specific, it passes the `Message` to the `_handle` method of the appropriate room. Both the client and its rooms signal events by inheriting from `EventEmitter`.
+In order to instantiate a client, pass the server websocket URL and login server
+URL. Both are optional, defaulting to the official Pokemon Showdown servers.
 
-## Roadmap
-### Blocking
-- [ ] Room-specific event handling
-- [ ] Events for battle functionality
-- [ ] Improved documentation
+```
+var PokeClient = require('pokemon-showdown-api');
 
-### Non-blocking
-- [ ] Promise-based return values that fulfil when a command has been
-  confirmed
-- [ ] "Raw" mode for REPL that emits JSON events on stdout so it can embedded into other programs
+var client = new PokeClient();
+// By default, this is equivalent to:
+// var client = new PokeClient('ws://sim.smogon.com:8000/showdown/websocket', 'https://play.pokemonshowdown.com/action.php');
+```
 
-### Wishlist
-- [ ] [Flow](flowtype.org) typechecking
-- [ ] Use a proper lexer/parser pipeline
+The client will emit events for consumers to listen on. The client does not
+store any messages, instead delegating this responsibility to consumers.
+(Storing messages uses memory over time, and not all consumers may need this.)
+
+```
+client.connect();
+
+// Websocket has connected.
+client.on('ready', function() {
+  client.login('username', 'password');
+});
+
+// Successful login.
+client.on('login', function(user) {
+  console.log('Logged in as:', user);
+});
+
+// A battle challenge from another user has been received.
+client.on('challenge', function(user) {
+  console.log(user, 'would like to battle!');
+});
+
+// Login failed.
+client.on('error:login', function(err) {
+  console.log('Error encountered while logging in:', err.message);
+});
+```
+
+In general, any sort of message can be sent using `client.send`. This package
+also provides convenience methods for common types of messages, such as
+`client.login(username, password)` for authentication, `client.accept(username)`
+and `client.reject(username)` for accepting or rejecting incoming battle
+challenges, and `client.move(index)` for selecting a move in a battle.
+
+For more details, see [the API docs](./docs/API.md).
+
+For notes on protocol specifics, see [Pokemon Showdown Protocol](https://github.com/Zarel/Pokemon-Showdown/blob/master/PROTOCOL.md).
+
+## Notes about Pokemon Showdown's implementation
+
+Pokemon Showdown is effectively implemented as a fancy chat room. Some of these
+are considered regular "chat" rooms, and others are considered "battle" rooms.
+Within battle rooms, a battle is conducted by sending special chat messages back
+and forth, with the server validating each message.
+
+Authentication occurs by talking to a separate authentication server. The
+process is as follows:
+1. Get the challenge string (`challstr`) upon connecting to the main server
+2. Pass the `challstr` along with a proposed username (and password, if needed)
+   to the login server
+3. The login server returns an `assertion`, which is passed to the main server
+   to prove ownership of a username.
