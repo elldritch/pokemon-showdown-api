@@ -12,6 +12,12 @@ var client = new PokeClient();
 ```
 
 ## Events
+
+### `ready`
+
+### `closed`
+
+### `challenge -> user: String`
 ```
 // Websocket has connected.
 client.on('ready', function() {

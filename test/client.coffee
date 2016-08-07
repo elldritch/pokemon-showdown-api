@@ -1,7 +1,7 @@
 {expect} = require 'chai'
-{PokemonShowdownClient} = require '../src'
+{PokeClient} = require '../src'
 
-describe 'PokemonShowdownClient', ->
+describe 'PokeClient', ->
   it 'should be tested'
 
   # This is a temporary sanity check test.
@@ -11,12 +11,12 @@ describe 'PokemonShowdownClient', ->
   it 'can connect and challenge others', (done) ->
   # coffeelint: enable=missing_fat_arrows
     @timeout 5 * 1000
-    alice = new PokemonShowdownClient()
+    alice = new PokeClient()
     alice.connect()
     alice.on 'ready', -> alice.login 'alice-the-pscbot'
     alice.on 'login', -> alice.send '/join lobby'
 
-    bob = new PokemonShowdownClient()
+    bob = new PokeClient()
     bob.connect()
     bob.on 'ready', -> bob.login 'bob-the-pscbot'
     bob.on 'login', -> bob.send '/join lobby'
@@ -28,5 +28,5 @@ describe 'PokemonShowdownClient', ->
       done()
 
     bob.on 'internal:message', (message) ->
-      if message.type is PokemonShowdownClient.MESSAGE_TYPES.ROOM_INIT.INIT
+      if message.type is PokeClient.MESSAGE_TYPES.ROOM_INIT.INIT
         bob.challenge 'alice-the-pscbot', format: 'randombattle'

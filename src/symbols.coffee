@@ -2,6 +2,7 @@ toMessageType = (name) -> Symbol.for 'psc:token:' + name
 
 MESSAGE_TYPES =
   OTHER:
+    TOURNAMENT: Symbol.for 'psc:token:tournament'
     UNKNOWN: Symbol.for 'psc:token:unknown'
 
   ROOM_INIT:
@@ -13,6 +14,8 @@ MESSAGE_TYPES =
   ROOM_MESSAGES:
     MESSAGE: Symbol.for 'psc:token:message'
     HTML: Symbol.for 'psc:token:html'
+    UHTML: Symbol.for 'psc:token:uhtml'
+    UHTMLCHANGE: Symbol.for 'psc:token:uhtmlchange'
     JOIN: Symbol.for 'psc:token:join'
     LEAVE: Symbol.for 'psc:token:leave'
     NAME: Symbol.for 'psc:token:name'

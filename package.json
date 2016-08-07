@@ -22,6 +22,8 @@
   "dependencies": {
     "bluebird": "^3.4.1",
     "chalk": "^1.1.3",
+    "eventemitter2": "^2.1.0",
+    "mocha": "^3.0.1",
     "request": "^2.74.0",
     "sanitize-html": "1.13.0",
     "ws": "^1.1.1"

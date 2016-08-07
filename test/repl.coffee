@@ -1,4 +1,4 @@
 {expect} = require 'chai'
 
-describe 'PSC REPL', ->
+describe 'PokeClient REPL', ->
   it 'should be tested'

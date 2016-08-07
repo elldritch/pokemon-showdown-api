@@ -5,6 +5,7 @@ util = require 'util'
 chalk = require 'chalk'
 
 {PokeClient} = require './'
+{MESSAGE_TYPES} = PokeClient
 
 class Console extends EventEmitter
   constructor: ({
@@ -56,20 +57,21 @@ client
         catch e
           ui.print chalk.red e
       else
-        client.socket.send line
+        client.send line
       ui.prompt()
   .on 'disconnect', ->
     ui.print chalk.green 'disconnected'
     ui.clear()
     process.exit 0
-  .on 'internal:raw', (message) ->
-    ui.print chalk.gray '< ' + message
-  .on 'internal:message', (message) ->
-    ui.print chalk.magenta '< ' + dump message
-  .on 'internal:debug', (args...) ->
-    for arg in args
-      ui.print chalk.yellow '[DEBUG]' + JSON.stringify arg
-  .on 'error', (err) ->
-    ui.print chalk.red '[ERROR]' + JSON.stringify err
+  .on 'message', (message) ->
+    switch message.type
+      when MESSAGE_TYPES.OTHER.UNKNOWN
+        ui.print chalk.inverse '< ' + dump message
+      else
+        ui.print '< ' + dump message
+  .on 'error:*', (err) ->
+    ui.print chalk.red '[ERROR] ' + JSON.stringify err
+  .onAny (event, data) ->
+    ui.print chalk.dim "#{event} #{dump data}"
 
 ui.on 'close', -> process.exit 0

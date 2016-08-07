@@ -1,5 +1,4 @@
-EventEmitter = require 'events'
-
+{EventEmitter2} = require 'eventemitter2'
 Promise = require 'bluebird'
 WebSocket = require 'ws'
 request = Promise.promisify require 'request'
@@ -8,28 +7,21 @@ sanitize = require 'sanitize-html'
 {toMessageType, MESSAGE_TYPES} = require './symbols'
 
 # This is a client for Pokemon Showdown.
-class PokeClient extends EventEmitter
+class PokeClient extends EventEmitter2
   constructor: (
     @_server = 'ws://sim.smogon.com:8000/showdown/websocket',
     @_loginServer = 'https://play.pokemonshowdown.com/action.php'
   ) ->
     @socket = null
-    @rooms =
-      global:
-        type: 'chat'
-        messages: []
-        users: []
-      lobby:
-        type: 'chat'
-        messages: []
-        users: []
-    @user = {}
+    @user = null
 
     @_challstr = ''
     @_loginRequest = request.defaults
       url: @_loginServer
       method: 'POST'
     @_login = (options) -> @_loginRequest form: options
+
+    super wildcard: true, delimiter: ':'
 
   connect: ->
     @socket = new WebSocket @_server
@@ -70,7 +62,9 @@ class PokeClient extends EventEmitter
     assertion.then (assertion) =>
       @send "/trn #{name},0,#{assertion}"
       new Promise (resolve, reject) =>
-        @.once 'login', -> resolve()
+        @.once 'self:changed', (data) =>
+          @emit 'login', data
+          resolve()
 
   send: (message, room = '') ->
     payload = "#{room}|#{message}"
@@ -82,66 +76,69 @@ class PokeClient extends EventEmitter
     messages = @_lex data
 
     for message in messages
-      @emit 'internal:message', message
-
-      unless message.room of @rooms
-        @rooms[message.room] = messages: [], users: [], type: 'unknown'
-      @rooms[message.room].messages.push message
-
       switch message.type
         when MESSAGE_TYPES.GLOBAL.POPUP
-          null
+          @emit 'info:popup', message
         when MESSAGE_TYPES.GLOBAL.PM
-          null
+          @emit 'chat:private', message
         when MESSAGE_TYPES.GLOBAL.USERCOUNT
-          null
+          @emit 'info:usercount', message
         when MESSAGE_TYPES.GLOBAL.NAMETAKEN
-          @emit 'error',
-            code: 'ERR_LOGIN_FAILED'
-            message: message.data.message
+          @emit 'error:login', message
         when MESSAGE_TYPES.GLOBAL.CHALLSTR
           @_challstr = message.data
           @emit 'ready'
         when MESSAGE_TYPES.GLOBAL.UPDATEUSER
-          @emit 'login'
           @user = message.data
+          @emit 'self:changed', message
         when MESSAGE_TYPES.GLOBAL.FORMATS
-          null
+          @emit 'info:formats', message
         when MESSAGE_TYPES.GLOBAL.UPDATESEARCH
-          null
+          @emit 'info:search', message
         when MESSAGE_TYPES.GLOBAL.UPDATECHALLENGES
-          @emit 'challenge', message.data
+          @emit 'self:challenges', message
         when MESSAGE_TYPES.GLOBAL.QUERYRESPONSE
-          null
+          @emit 'info:query', message
 
         when MESSAGE_TYPES.ROOM_INIT.INIT
-          @emit 'join:room', message.room
-          @rooms[message.room].type = message.data
+          @emit 'room:joined', message
         when MESSAGE_TYPES.ROOM_INIT.DEINIT
-          @emit 'leave:room', message.room
-          delete @rooms[message.room]
+          @emit 'room:left', message
         when MESSAGE_TYPES.ROOM_INIT.TITLE
-          @rooms[message.room].title = message.data
+          @emit 'room:title', message
         when MESSAGE_TYPES.ROOM_INIT.USERS
-          @rooms[message.room].users = message.data
+          @emit 'room:users', message
 
+        when MESSAGE_TYPES.ROOM_MESSAGES.MESSAGE
+          @emit 'chat:message', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.HTML
+          @emit 'chat:html', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.UHTML
+          @emit 'chat:uhtml', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.UHTMLCHANGE
+          @emit 'chat:uhtmlchange', message
         when MESSAGE_TYPES.ROOM_MESSAGES.JOIN
-          @emit 'join:user', message.data
-          @rooms[message.room].users.push message.data
+          @emit 'user:joined', message
         when MESSAGE_TYPES.ROOM_MESSAGES.LEAVE
-          @emit 'leave:user', message.data
-          for i in [0...@rooms[message.room].users.length]
-            if @rooms[message.room].users[i] is message.data
-              @rooms[message.room].users.splice i, 1
-              break
+          @emit 'user:left', message
         when MESSAGE_TYPES.ROOM_MESSAGES.NAME
-          for i in [0...@rooms[message.room].users.length]
-            if @rooms[message.room].users[i] is message.data.oldid
-              @rooms[message.room].users[i] = message.data.user
-              break
+          @emit 'user:changed', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.CHAT
+          message.data.timestamp = Date.now()
+          @emit 'chat:public', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.CHAT_TIMESTAMP
+          @emit 'chat:public', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.TIMESTAMP
+          @emit 'chat:timestamp', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.BATTLE
+          @emit 'battle:start', message
+        when MESSAGE_TYPES.ROOM_MESSAGES.RAW
+          @emit 'chat:raw', message
 
         when MESSAGE_TYPES.OTHER.UNKNOWN
-          @emit 'internal:unknown'
+          @emit 'internal:unknown', message
+
+      @emit 'message', message
 
   _lex: (data) ->
     lines = data.split '\n'
@@ -201,7 +198,8 @@ class PokeClient extends EventEmitter
         return {type, data, room: 'global'}
       when MESSAGE_TYPES.GLOBAL.UPDATEUSER
         [username, named, avatar] = data.split '|'
-        return {type, data: {username, named: named is '1', avatar}, room: 'global'}
+        named = named is '1'
+        return {type, data: {username, named, avatar}, room: 'global'}
       when MESSAGE_TYPES.GLOBAL.FORMATS
         # The documentation for this in PROTOCOL.md seems out-of-date. The
         # section titles are correct, but not the suffixes.
@@ -226,6 +224,12 @@ class PokeClient extends EventEmitter
 
       when MESSAGE_TYPES.ROOM_MESSAGES.HTML
         return {type, data: sanitize data}
+      when MESSAGE_TYPES.ROOM_MESSAGES.UHTML
+        [name, html] = data.split '|'
+        return {type, data: {name, html: sanitize html}}
+      when MESSAGE_TYPES.ROOM_MESSAGES.UHTMLCHANGE
+        [name, html] = data.split '|'
+        return {type, data: {name, html: sanitize html}}
       when MESSAGE_TYPES.ROOM_MESSAGES.RAW
         return {type, data: sanitize data}
       when MESSAGE_TYPES.ROOM_MESSAGES.JOIN
@@ -374,37 +378,14 @@ class PokeClient extends EventEmitter
       when MESSAGE_TYPES.BATTLE.ACTIONS.MINOR.MESSAGE
         return {type, data: message: data}
 
+      when MESSAGE_TYPES.OTHER.TOURNAMENT
+        [updateType, update] = data.split '|'
+        if updateType is 'update'
+          update = JSON.parse update
+        return {type, data: {updateType, update}}
+
     return {type: MESSAGE_TYPES.OTHER.UNKNOWN, data}
 
   @MESSAGE_TYPES: MESSAGE_TYPES
-
-  challenge: (name, {format = 'randombattle', room = ''}) -> @send "/challenge #{name},#{format}", room
-  accept: (user) -> @send "/accept #{user}"
-  reject: (user) -> @send "/reject #{user}"
-
-  move: (move, room) -> @send "/move #{move}", room
-  switch: (index, room) -> @send "/switch #{index}", room
-
-  join: (room) -> @send "/join #{room}"
-
-  away: -> @send '/away'
-  back: -> @send '/back'
-
-  avatar: (avatar) -> @send "/avatar #{avatar}"
-
-  rating: (user) -> @send "/rating #{user}"
-
-  ignore: (user) -> @send "/ignore #{user}"
-  unignore: (user) -> @send "/unignore #{user}"
-  ignorelist: -> @send '/ignorelist'
-
-  data: (query) -> @send "/data #{query}"
-
-###
-COMMANDS: /nick, /avatar, /rating, /whois, /msg, /reply, /ignore, /away, /back, /timestamps, /highlight
-INFORMATIONAL COMMANDS: /data, /dexsearch, /movesearch, /groups, /faq, /rules, /intro, /formatshelp, /othermetas, /learn, /analysis, /calc (replace / with ! to broadcast. Broadcasting requires: + % @ * # & ~)
-For an overview of room commands, use /roomhelp
-For details of a specific command, use something like: /help data
-###
 
 module.exports = {PokeClient}

@@ -13,13 +13,16 @@ In particular, this API is designed so that _other_ APIs can be built on top of
 it (for example, to add logic for handling rooms or battles).
 
 Explicit goals:
+
 1. Don't leak memory over time (this is critical for long-running consumers).
 2. Be fast.
 
-(Goal 1 implies that this library shouldn't store messages, instead delegating
-that to the consumer.)
+(Goal 1 implies that no O(n) logs can be stored, precluding the storing of
+messages or rooms. If a consumer needs these features, they should implement
+this on their own.)
 
 These lead to two explicit non-goals:
+
 1. No handling logic for rooms.
 2. No handling logic for battles.
 
@@ -74,14 +77,16 @@ client.on('error:login', function(err) {
 ```
 
 In general, any sort of message can be sent using `client.send`. This package
-also provides convenience methods for common types of messages, such as
-`client.login(username, password)` for authentication, `client.accept(username)`
-and `client.reject(username)` for accepting or rejecting incoming battle
-challenges, and `client.move(index)` for selecting a move in a battle.
+also provides a convenience method authentication using
+`client.login(username, password)`.
 
 For more details, see [the API docs](./docs/API.md).
 
-For notes on protocol specifics, see [Pokemon Showdown Protocol](https://github.com/Zarel/Pokemon-Showdown/blob/master/PROTOCOL.md).
+For notes on protocol specifics, see
+[Pokemon Showdown Protocol](https://github.com/Zarel/Pokemon-Showdown/blob/master/PROTOCOL.md),
+[command parsing source code](https://github.com/Zarel/Pokemon-Showdown-Client/blob/b3ab4374444c52eaf8064353f6b7497ac9e022d4/js/client-chat.js#L341),
+and
+[socket message parsing source code](https://github.com/Zarel/Pokemon-Showdown-Client/blob/05c89b54d74aca2f39ff7539bffe414d88b610e5/js/client.js#L734).
 
 ## Notes about Pokemon Showdown's implementation
 
@@ -92,6 +97,7 @@ and forth, with the server validating each message.
 
 Authentication occurs by talking to a separate authentication server. The
 process is as follows:
+
 1. Get the challenge string (`challstr`) upon connecting to the main server
 2. Pass the `challstr` along with a proposed username (and password, if needed)
    to the login server
