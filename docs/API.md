@@ -127,6 +127,10 @@ GLOBAL.UPDATECHALLENGES
 GLOBAL.QUERYRESPONSE
 ```
 
+### `type UpdateUserMessage = DataMessage & {data: {username: string, named: boolean, avatar: integer}}`
+A `DataMessage` such that `message.type = MESSAGE_TYPES.GLOBAL.UPDATEUSER`
+which contains the updated user. This `Message` is used by multiple events.
+
 ## Events
 The return values of all event handlers with a return type of `void` are
 ignored.
@@ -144,13 +148,15 @@ and the
 Fires after the client has connected and received a `challstr` (and is thus
 ready to authenticate).
 
-Calling `client.login([username, [password]])` before this event fires results in undefined behaviour.
+Calling `client.login([username, [password]])` before this event fires results
+in undefined behaviour.
 
 ### `'login': (UpdateUserMessage) => void`
-Fires after a successful login. This while fire _in addition_ to the
-`self:changed` event.
+Fires after a successful login. This fires _in addition_ to the `self:changed`
+event.
 
-See [UpdateUserMessage](#updateusermessage) below.
+See
+[UpdateUserMessage](#type-updateusermessage--datamessage--data-username-string-named-boolean-avatar-integer).
 
 ### `'message': (message: Message & TODO) => void`
 
@@ -166,10 +172,8 @@ See [UpdateUserMessage](#updateusermessage) below.
 
 
 ### `'self:changed': (message: UpdateUserMessage) => void`
-#### `type UpdateUserMessage = DataMessage & {data: {username: string, named: boolean, avatar: integer}}`
-
-Returns a `DataMessage` containing the updated user, with a `MessageType` of
-`MESSAGE_TYPES.GLOBAL.UPDATEUSER`.
+Fires whenever the user is updated (e.g. after a successful login or avatar
+change).
 
 ### `'self:challenges': (message: Message & TODO) => void`
 
@@ -220,7 +224,9 @@ Returns a `DataMessage` containing the updated user, with a `MessageType` of
 ### `'internal:raw': (data: string) => void`
 
 ### `'internal:unknown': (message: StringMessage) => void`
-Fires after
+Fires after parsing an unknown message. Returns a `StringMessage` such that
+`message.type = MESSAGE_TYPES.OTHER.UNKNOWN` which contains the raw message
+contents.
 
 ## Methods
 
@@ -234,7 +240,7 @@ closing the underlying WebSocket. The returned `Promise` fulfils with the
 arguments of the
 [`ws` 'close' event](https://github.com/websockets/ws/blob/master/doc/ws.md#event-close).
 
-See the [`'disconnect'` event](#disconnect).
+See the [`'disconnect'` event](#disconnect-code-unsigned-short-message---void).
 
 ### `send: (message: string, room: ?string) => void`
 
