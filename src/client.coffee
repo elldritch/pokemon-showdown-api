@@ -68,8 +68,8 @@ class PokeClient extends EventEmitter2
 
   send: (message, room = '') ->
     payload = "#{room}|#{message}"
-    @emit 'internal:send', payload
     @socket.send payload
+    @emit 'internal:send', payload
 
   _handle: (data) ->
     @emit 'internal:raw', data

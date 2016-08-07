@@ -3,7 +3,8 @@
 `pokemon-showdown-api` is a low-level library for connecting to and interacting
 with the Pokemon Showdown server.
 
-**This package is under heavy development, and is nowhere near complete.**
+**This package is under development. Its documentation is not complete and there
+remain additional events to be added, but it is mostly API-stable.**
 
 ## Overview
 
@@ -40,7 +41,7 @@ command line, try out `npm install --global pokemon-showdown-api` and use
 In order to instantiate a client, pass the server websocket URL and login server
 URL. Both are optional, defaulting to the official Pokemon Showdown servers.
 
-```
+```js
 var PokeClient = require('pokemon-showdown-api');
 
 var client = new PokeClient();
@@ -52,7 +53,7 @@ The client will emit events for consumers to listen on. The client does not
 store any messages, instead delegating this responsibility to consumers.
 (Storing messages uses memory over time, and not all consumers may need this.)
 
-```
+```js
 client.connect();
 
 // Websocket has connected.
@@ -103,3 +104,13 @@ process is as follows:
    to the login server
 3. The login server returns an `assertion`, which is passed to the main server
    to prove ownership of a username.
+
+## Roadmap
+
+### Ongoing
+1. Additional documentation
+2. Additional events
+
+### Next up
+1. An adapter taking JSON or MessagePack commands on `stdin` and emitting output
+   on `stdout` to allow this library to be embedded in other projects.
