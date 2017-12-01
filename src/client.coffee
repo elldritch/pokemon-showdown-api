@@ -39,12 +39,12 @@ class PokeClient extends EventEmitter2
     @socket.close()
     done
 
-  login: (name, password) ->
-    if name and password and password.length > 0
+  login: (name, pass) ->
+    if name and pass and pass.length > 0
       assertion = @_login {
         act: 'login'
         name
-        password
+        pass
         challstr: @_challstr
       }
       .then ({body}) ->
