@@ -285,6 +285,8 @@ class PokeClient extends EventEmitter2
       when MESSAGE_TYPES.BATTLE.TIE
         return {type}
 
+      when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.TURN
+        return {type, data: data}
       when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.MOVE
         [pokemon, move, target] = data.split '|'
         return {type, data: {pokemon, move, target}}

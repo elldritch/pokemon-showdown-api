@@ -44,6 +44,7 @@ MESSAGE_TYPES =
 
     ACTIONS:
       MAJOR:
+        TURN: Symbol.for 'psc:token:turn'
         MOVE: Symbol.for 'psc:token:move'
         SWITCH: Symbol.for 'psc:token:switch'
         DRAG: Symbol.for 'psc:token:drag'
