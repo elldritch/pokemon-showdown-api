@@ -41,6 +41,7 @@ MESSAGE_TYPES =
     START: Symbol.for 'psc:token:start'
     WIN: Symbol.for 'psc:token:win'
     TIE: Symbol.for 'psc:token:tie'
+    ERROR: Symbol.for 'psc:token:error'
 
     ACTIONS:
       MAJOR:

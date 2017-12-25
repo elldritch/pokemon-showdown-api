@@ -284,6 +284,10 @@ class PokeClient extends EventEmitter2
         return {type, data}
       when MESSAGE_TYPES.BATTLE.TIE
         return {type}
+      when MESSAGE_TYPES.BATTLE.ERROR
+        [error, description] = data.split '] '
+        error = error.replace /\[/, ''
+        return {type, data: {error, description}}
 
       when MESSAGE_TYPES.BATTLE.ACTIONS.MAJOR.TURN
         return {type, data: data}
